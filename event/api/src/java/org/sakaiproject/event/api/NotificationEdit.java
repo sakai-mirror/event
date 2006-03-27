@@ -21,14 +21,15 @@
 
 package org.sakaiproject.event.api;
 
+import org.sakaiproject.entity.api.Edit;
+
 /**
  * <p>
  * NotificationEdit is a mutable Notification.
  * </p>
  */
-public interface NotificationEdit extends Notification
+public interface NotificationEdit extends Notification, Edit
 {
-	// TODO: extends edit? -ggolden
 	/**
 	 * Do the notification.
 	 * 

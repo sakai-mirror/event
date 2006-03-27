@@ -23,14 +23,15 @@ package org.sakaiproject.event.api;
 
 import java.util.List;
 
+import org.sakaiproject.entity.api.Entity;
+
 /**
  * <p>
  * Notification the interface for classes that act to notify, used with the GenericNotificationService.
  * </p>
  */
-public interface Notification
+public interface Notification extends Entity
 {
-	// TODO: extends entity? -ggolden
 	/**
 	 * Do the notification.
 	 * 
