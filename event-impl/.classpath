@@ -11,7 +11,7 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/webapp-api"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/memory-api"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/entity-util"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/legacy"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/db-api"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/db-util"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
