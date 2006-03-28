@@ -1,30 +1,26 @@
 /**********************************************************************************
  * $URL$
  * $Id$
- **********************************************************************************
+ ***********************************************************************************
  *
- * Copyright (c) 2003, 2004 The Regents of the University of Michigan, Trustees of Indiana University,
- *                  Board of Trustees of the Leland Stanford, Jr., University, and The MIT Corporation
+ * Copyright (c) 2003, 2004, 2005, 2006 The Sakai Foundation.
  * 
- * Licensed under the Educational Community License Version 1.0 (the "License");
- * By obtaining, using and/or copying this Original Work, you agree that you have read,
- * understand, and will comply with the terms and conditions of the Educational Community License.
- * You may obtain a copy of the License at:
+ * Licensed under the Educational Community License, Version 1.0 (the "License"); 
+ * you may not use this file except in compliance with the License. 
+ * You may obtain a copy of the License at
  * 
- *      http://cvs.sakaiproject.org/licenses/license_1_0.html
+ *      http://www.opensource.org/licenses/ecl1.php
  * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
- * AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+ * See the License for the specific language governing permissions and 
+ * limitations under the License.
  *
  **********************************************************************************/
 
-// package
-package org.sakaiproject.component.adaptor;
+package org.sakaiproject.event.impl;
 
-// imports
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -38,31 +34,27 @@ import java.util.Vector;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sakaiproject.api.kernel.id.IdManager;
-import org.sakaiproject.api.kernel.session.Session;
-import org.sakaiproject.api.kernel.session.SessionBindingEvent;
-import org.sakaiproject.api.kernel.session.SessionBindingListener;
-import org.sakaiproject.api.kernel.session.SessionManager;
-import org.sakaiproject.api.kernel.session.ToolSession;
-import org.sakaiproject.api.kernel.thread_local.ThreadLocalManager;
-import org.sakaiproject.service.framework.config.ServerConfigurationService;
-import org.sakaiproject.service.framework.session.SessionState;
-import org.sakaiproject.service.framework.session.SessionStateBindingListener;
-import org.sakaiproject.service.framework.session.UsageSession;
-import org.sakaiproject.service.framework.session.UsageSessionService;
-import org.sakaiproject.service.framework.sql.SqlReader;
-import org.sakaiproject.service.framework.sql.SqlService;
-import org.sakaiproject.service.legacy.time.Time;
-import org.sakaiproject.service.legacy.time.TimeService;
-import org.sakaiproject.util.LoginUtil;
+import org.sakaiproject.component.api.ServerConfigurationService;
+import org.sakaiproject.db.api.SqlReader;
+import org.sakaiproject.db.api.SqlService;
+import org.sakaiproject.event.api.SessionState;
+import org.sakaiproject.event.api.SessionStateBindingListener;
+import org.sakaiproject.event.api.UsageSession;
+import org.sakaiproject.event.api.UsageSessionService;
+import org.sakaiproject.id.api.IdManager;
+import org.sakaiproject.thread_local.api.ThreadLocalManager;
+import org.sakaiproject.time.api.Time;
+import org.sakaiproject.time.api.TimeService;
+import org.sakaiproject.webapp.api.Session;
+import org.sakaiproject.webapp.api.SessionBindingEvent;
+import org.sakaiproject.webapp.api.SessionBindingListener;
+import org.sakaiproject.webapp.api.SessionManager;
+import org.sakaiproject.webapp.api.ToolSession;
 
 /**
  * <p>
  * UsageSessionServiceAdaptor implements Sakai1's UsageSessionService for Sakai. The Session aspects are done as an adaptor to the SessionManager. UsageSession entities are handled as was in the ClusterUsageSessionService.
  * </p>
- * 
- * @author University of Michigan, Sakai Software Development Team
- * @version $Revision$
  */
 public class UsageSessionServiceAdaptor implements UsageSessionService
 {
@@ -244,7 +236,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 				{
 					return session;
 				}
-				
+
 				// if it is for another user, we will create a new session, log a warning, and unbound/close the existing one
 				s.setAttribute(USAGE_SESSION_KEY, null);
 				M_log.warn("startSession: replacing existing UsageSession: " + session.getId() + " user: " + session.getUserId()
@@ -318,14 +310,14 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 	{
 		String rv = null;
 
-        // See http://bugs.sakaiproject.org/jira/browse/SAK-1507
-        // At server startup, when Spring is initializing components, there may not
-        // be a session manager yet.  This adaptor may be called before all components
-        // are initialized since there are hidden dependencies (through static covers)
-        // of which Spring is not aware.  Therefore, check for and handle a null 
-        // m_sessionManager.
-        if (m_sessionManager == null) return null;
-        
+		// See http://bugs.sakaiproject.org/jira/browse/SAK-1507
+		// At server startup, when Spring is initializing components, there may not
+		// be a session manager yet. This adaptor may be called before all components
+		// are initialized since there are hidden dependencies (through static covers)
+		// of which Spring is not aware. Therefore, check for and handle a null
+		// m_sessionManager.
+		if (m_sessionManager == null) return null;
+
 		// do we have a current session?
 		Session s = m_sessionManager.getCurrentSession();
 		if (s != null)
@@ -364,27 +356,27 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 	public UsageSession setSessionActive(boolean auto)
 	{
 		throw new UnsupportedOperationException();
-		//		BaseUsageSession session = (BaseUsageSession) getSession();
-		//		if (session == null) return null;
+		// BaseUsageSession session = (BaseUsageSession) getSession();
+		// if (session == null) return null;
 		//
-		//		if (session.isClosed()) return session;
+		// if (session.isClosed()) return session;
 		//
-		//		if (auto)
-		//		{
-		//			// do not mark the current session as having user activity
-		//			// but close it if it's timed out from no user activity
-		//			if (session.isInactive())
-		//			{
-		//				session.close();
-		//			}
-		//		}
-		//		else
-		//		{
-		//			// mark the current session as having user activity
-		//			session.setActivity();
-		//		}
+		// if (auto)
+		// {
+		// // do not mark the current session as having user activity
+		// // but close it if it's timed out from no user activity
+		// if (session.isInactive())
+		// {
+		// session.close();
+		// }
+		// }
+		// else
+		// {
+		// // mark the current session as having user activity
+		// session.setActivity();
+		// }
 		//
-		//		return session;
+		// return session;
 	}
 
 	/**
@@ -775,7 +767,8 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 				close();
 
 				// generate the logout event
-				LoginUtil.logoutEvent(this);
+				// TODO: restore this! -ggolden
+				// LoginUtil.logoutEvent(this);
 			}
 		}
 
@@ -1084,7 +1077,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 				M_log.warn(".addSession(): dbWrite failed");
 				return false;
 			}
-			
+
 			return true;
 
 		} // addSession
@@ -1270,6 +1263,3 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		}
 	}
 }
-
-
-

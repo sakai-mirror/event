@@ -43,11 +43,11 @@ import org.sakaiproject.event.api.NotificationEdit;
 import org.sakaiproject.event.api.NotificationLockedException;
 import org.sakaiproject.event.api.NotificationNotDefinedException;
 import org.sakaiproject.event.api.NotificationService;
-import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.id.api.IdManager;
 import org.sakaiproject.memory.api.CacheRefresher;
 import org.sakaiproject.time.api.Time;
 import org.sakaiproject.util.BaseResourcePropertiesEdit;
+import org.sakaiproject.util.StorageUser;
 import org.sakaiproject.util.StringUtil;
 import org.sakaiproject.webapp.api.SessionBindingEvent;
 import org.sakaiproject.webapp.api.SessionBindingListener;
@@ -319,7 +319,7 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 		}
 
 		// if not found
-		if (notification == null) throw new IdUnusedException(id);
+		if (notification == null) throw new NotificationNotDefinedException(id);
 
 		// track it - we don't track Notification access -ggolden
 		// m_eventTrackingService.post(m_eventTrackingService.newEvent(SECURE_ACCESS_NOTIFICATION, notification.getReference()));

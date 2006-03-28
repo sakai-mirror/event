@@ -3,9 +3,9 @@
 <project>
 	<pomVersion>3</pomVersion>
 	<extend>../../../master/project.xml</extend>
-	<name>sakai-event-api</name>
+	<name>sakai-event-pack</name>
 	<groupId>sakaiproject</groupId>
-	<id>sakai-event-api</id>
+	<id>sakai-event-pack</id>
 	<currentVersion>${sakai.version}</currentVersion>
 	<organization>
 		<name>University of Michigan</name>
@@ -14,36 +14,53 @@
 	<inceptionYear>2003</inceptionYear>
 
 	<properties>
-		<!-- deploy as a jar -->
-		<deploy.type>jar</deploy.type>
-		<!-- deploy to "shared", "common" or "server" -->
-		<deploy.target>shared</deploy.target>
+		<!-- deploy as a components -->
+		<deploy.type>components</deploy.type>
 	</properties>
 
 	<dependencies>
 
 		<dependency>
 			<groupId>sakaiproject</groupId>
-			<artifactId>sakai-component</artifactId>
+			<artifactId>sakai-event-impl</artifactId>
 			<version>${sakai.version}</version>
+			<properties>
+				<war.bundle>true</war.bundle>
+			</properties>
 		</dependency>
 
 		<dependency>
 			<groupId>sakaiproject</groupId>
-			<artifactId>sakai-util-api</artifactId>
+			<artifactId>sakai-util</artifactId>
 			<version>${sakai.version}</version>
+			<properties>
+				<war.bundle>true</war.bundle>
+			</properties>
 		</dependency>
 
 		<dependency>
 			<groupId>sakaiproject</groupId>
-			<artifactId>sakai-entity-api</artifactId>
+			<artifactId>sakai-legacy-storage</artifactId>
 			<version>${sakai.version}</version>
+			<properties>
+				<war.bundle>true</war.bundle>
+			</properties>
+		</dependency>
+
+		<dependency>
+			<groupId>sakaiproject</groupId>
+			<artifactId>sakai-entity-util</artifactId>
+			<version>${sakai.version}</version>
+			<properties>
+				<war.bundle>true</war.bundle>
+			</properties>
 		</dependency>
 
 	</dependencies>
 
 	<build>
 
+		<!-- java source -->
 		<sourceDirectory>src/java</sourceDirectory>
 
 	</build>

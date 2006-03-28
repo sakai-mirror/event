@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springkernel.org/dtd/spring-beans.dtd">
+
+<beans>
+
+	<bean id="org.sakaiproject.event.api.EventTrackingService"
+			class="org.sakaiproject.event.impl.ClusterEventTracking"
+			init-method="init"
+			destroy-method="destroy"
+			singleton="true">
+		<property name="sqlService"><ref bean="org.sakaiproject.sql.api.SqlService"/></property>
+		<property name="serverConfigurationService"><ref bean="org.sakaiproject.component.api.ServerConfigurationService"/></property>
+		<property name="timeService"><ref bean="org.sakaiproject.time.api.TimeService"/></property>
+		<property name="usageSessionService"><ref bean="org.sakaiproject.event.api.UsageSessionService"/></property>
+		<property name="sessionManager"><ref bean="org.sakaiproject.webapp.api.SessionManager"/></property>
+ 		<property name="checkDb"><value>true</value></property>
+ 		<property name="autoDdl"><value>${auto.ddl}</value></property>
+ 		<property name="period"><value>5</value></property>
+ 		<property name="batchWrite"><value>true</value></property>
+	</bean>
+
+	<bean id="org.sakaiproject.service.event.api.NotificationService"
+			class="org.sakaiproject.event.impl.DbNotificationService"
+			init-method="init"
+			destroy-method="destroy"
+			singleton="true">
+		<property name="eventTrackingService"><ref bean="org.sakaiproject.event.api.EventTrackingService"/></property>
+		<property name="serverConfigurationService"><ref bean="org.sakaiproject.component.api.ServerConfigurationService"/></property>
+		<property name="idManager"><ref bean="org.sakaiproject.id.api.IdManager"/></property>
+		<property name="sqlService"><ref bean="org.sakaiproject.sql.api.SqlService"/></property>
+ 		<property name="tableName"><value>SAKAI_NOTIFICATION</value></property>
+ 		<property name="locksInDb"><value>false</value></property>
+ 		<property name="autoDdl"><value>${auto.ddl}</value></property>
+	</bean>
+
+	<bean id="org.sakaiproject.event.api.UsageSessionService"
+			class="org.sakaiproject.event.impl.UsageSessionServiceAdaptor"
+			init-method="init"
+			destroy-method="destroy"
+			singleton="true">
+		<property name="timeService"><ref bean="org.sakaiproject.time.api.TimeService"/></property>
+		<property name="sqlService"><ref bean="org.sakaiproject.sql.api.SqlService"/></property>
+		<property name="serverConfigurationService"><ref bean="org.sakaiproject.component.api.ServerConfigurationService"/></property>
+		<property name="threadLocalManager"><ref bean="org.sakaiproject.thread_local.api.ThreadLocalManager"/></property>
+		<property name="sessionManager"><ref bean="org.sakaiproject.webapp.api.SessionManager"/></property>
+		<property name="idManager"><ref bean="org.sakaiproject.id.api.IdManager"/></property>
+		<property name="autoDdl"><value>${auto.ddl}</value></property>
+	</bean>
+
+</beans>
