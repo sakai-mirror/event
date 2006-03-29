@@ -591,10 +591,8 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 								return null;
 							}
 
-							BaseEvent event = new BaseEvent(id, function, ref, code.equals("m"),
-							// Note: events from outside the server don't need notification info, since
-									// notification is processed only on internal events -ggolden
-									NotificationService.NOTI_NONE);
+							// Note: events from outside the server don't need notification info, since notification is processed only on internal events -ggolden
+							BaseEvent event = new BaseEvent(id, function, ref, code.equals("m"), NotificationService.NOTI_NONE);
 							if (nonSessionEvent)
 							{
 								event.setUserId(userId);

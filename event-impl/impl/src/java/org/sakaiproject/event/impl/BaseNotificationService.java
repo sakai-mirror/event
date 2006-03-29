@@ -321,9 +321,6 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 		// if not found
 		if (notification == null) throw new NotificationNotDefinedException(id);
 
-		// track it - we don't track Notification access -ggolden
-		// m_eventTrackingService.post(m_eventTrackingService.newEvent(SECURE_ACCESS_NOTIFICATION, notification.getReference()));
-
 		return notification;
 	}
 
