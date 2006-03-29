@@ -3,6 +3,7 @@
 
 <beans>
 
+<!--
 	<bean id="org.sakaiproject.event.api.EventTrackingService"
 			class="org.sakaiproject.event.impl.ClusterEventTracking"
 			init-method="init"
@@ -17,6 +18,17 @@
  		<property name="autoDdl"><value>${auto.ddl}</value></property>
  		<property name="period"><value>5</value></property>
  		<property name="batchWrite"><value>true</value></property>
+	</bean>
+-->
+
+	<!-- alternate, non-storage, non-clustered impl -->
+	<bean id="org.sakaiproject.event.api.EventTrackingService"
+			class="org.sakaiproject.event.impl.BasicEventTracking"
+			init-method="init"
+			destroy-method="destroy"
+			singleton="true">
+		<property name="usageSessionService"><ref bean="org.sakaiproject.event.api.UsageSessionService"/></property>
+		<property name="sessionManager"><ref bean="org.sakaiproject.webapp.api.SessionManager"/></property>
 	</bean>
 
 	<bean id="org.sakaiproject.service.event.api.NotificationService"
