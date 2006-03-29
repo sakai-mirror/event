@@ -86,14 +86,6 @@ public class UsageSessionService
 		return service.getSession();
 	}
 
-	public static java.lang.String getSessionUserId()
-	{
-		org.sakaiproject.event.api.UsageSessionService service = getInstance();
-		if (service == null) return null;
-
-		return service.getSessionUserId();
-	}
-
 	public static java.lang.String getSessionId()
 	{
 		org.sakaiproject.event.api.UsageSessionService service = getInstance();
@@ -164,5 +156,21 @@ public class UsageSessionService
 		if (service == null) return null;
 
 		return service.getOpenSessionsByServer();
+	}
+
+	public static boolean login(org.sakaiproject.user.api.Authentication param0, javax.servlet.http.HttpServletRequest param1)
+	{
+		org.sakaiproject.event.api.UsageSessionService service = getInstance();
+		if (service == null) return false;
+
+		return service.login(param0, param1);
+	}
+
+	public static void logout()
+	{
+		org.sakaiproject.event.api.UsageSessionService service = getInstance();
+		if (service == null) return;
+
+		service.logout();
 	}
 }

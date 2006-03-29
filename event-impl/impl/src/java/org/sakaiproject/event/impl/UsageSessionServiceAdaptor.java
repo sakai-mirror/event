@@ -32,11 +32,15 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sakaiproject.authz.api.AuthzGroupService;
 import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.db.api.SqlReader;
 import org.sakaiproject.db.api.SqlService;
+import org.sakaiproject.event.api.EventTrackingService;
 import org.sakaiproject.event.api.SessionState;
 import org.sakaiproject.event.api.SessionStateBindingListener;
 import org.sakaiproject.event.api.UsageSession;
@@ -45,6 +49,8 @@ import org.sakaiproject.id.api.IdManager;
 import org.sakaiproject.thread_local.api.ThreadLocalManager;
 import org.sakaiproject.time.api.Time;
 import org.sakaiproject.time.api.TimeService;
+import org.sakaiproject.user.api.Authentication;
+import org.sakaiproject.user.api.UserDirectoryService;
 import org.sakaiproject.webapp.api.Session;
 import org.sakaiproject.webapp.api.SessionBindingEvent;
 import org.sakaiproject.webapp.api.SessionBindingListener;
@@ -178,6 +184,48 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		m_autoDdl = new Boolean(value).booleanValue();
 	}
 
+	/** Dependency: EventTrackingService. */
+	protected EventTrackingService m_eventTrackingService = null;
+
+	/**
+	 * Dependency: EventTrackingService.
+	 * 
+	 * @param service
+	 *        The EventTrackingService.
+	 */
+	public void setEventTrackingService(EventTrackingService service)
+	{
+		m_eventTrackingService = service;
+	}
+
+	/** Dependency: AuthzGroupService. */
+	protected AuthzGroupService m_authzGroupService = null;
+
+	/**
+	 * Dependency: AuthzGroupService.
+	 * 
+	 * @param service
+	 *        The AuthzGroupService.
+	 */
+	public void setAuthzGroupService(AuthzGroupService service)
+	{
+		m_authzGroupService = service;
+	}
+
+	/** Dependency: UserDirectoryService. */
+	protected UserDirectoryService m_userDirectoryService = null;
+
+	/**
+	 * Dependency: UserDirectoryService.
+	 * 
+	 * @param service
+	 *        The UserDirectoryService.
+	 */
+	public void setUserDirectoryService(UserDirectoryService service)
+	{
+		m_userDirectoryService = service;
+	}
+
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
 	 *********************************************************************************************************************************************************************************************************************************************************/
@@ -280,26 +328,6 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 			M_log.warn("getSession: no current SessionManager session!");
 		}
 
-		return rv;
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public String getSessionUserId()
-	{
-		// just return the session manage's current user id
-		String rv = null;
-
-		// do we have a current session?
-		Session s = m_sessionManager.getCurrentSession();
-		if (s != null)
-		{
-			// use the authenticated user uuid in the session
-			rv = s.getUserId();
-		}
-
-		// may be null, which indicates that there's no user id available
 		return rv;
 	}
 
@@ -461,6 +489,62 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		}
 
 		return byServer;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public boolean login(Authentication authn, HttpServletRequest req)
+	{
+		// establish the user's session - this has been known to fail
+		UsageSession session = startSession(authn.getUid(), req.getRemoteAddr(), req.getHeader("user-agent"));
+		if (session == null)
+		{
+			return false;
+		}
+
+		// set the user information into the current session
+		Session sakaiSession = m_sessionManager.getCurrentSession();
+		sakaiSession.setUserId(authn.getUid());
+		sakaiSession.setUserEid(authn.getEid());
+
+		// update the user's externally provided realm definitions
+		m_authzGroupService.refreshUser(authn.getUid());
+
+		// post the login event
+		m_eventTrackingService.post(m_eventTrackingService.newEvent(EVENT_LOGIN, null, true));
+
+		return true;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public void logout()
+	{
+		m_userDirectoryService.destroyAuthentication();
+
+		// invalidate the sakai session, which makes it unavailable, unbinds all the bound objects,
+		// including the session, which will close and generate the logout event
+		Session sakaiSession = m_sessionManager.getCurrentSession();
+		sakaiSession.invalidate();
+	}
+
+	/**
+	 * Generate the logout event.
+	 */
+	protected void logoutEvent(UsageSession session)
+	{
+		if (session == null)
+		{
+			// generate a logout event (current session)
+			m_eventTrackingService.post(m_eventTrackingService.newEvent(EVENT_LOGOUT, null, true));
+		}
+		else
+		{
+			// generate a logout event (this session)
+			m_eventTrackingService.post(m_eventTrackingService.newEvent(EVENT_LOGOUT, null, true), session);
+		}
 	}
 
 	/**********************************************************************************************************************************************************************************************************************************************************
@@ -767,8 +851,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 				close();
 
 				// generate the logout event
-				// TODO: restore this! -ggolden
-				// LoginUtil.logoutEvent(this);
+				logoutEvent(this);
 			}
 		}
 

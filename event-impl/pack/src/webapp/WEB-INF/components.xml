@@ -43,7 +43,10 @@
 		<property name="serverConfigurationService"><ref bean="org.sakaiproject.component.api.ServerConfigurationService"/></property>
 		<property name="threadLocalManager"><ref bean="org.sakaiproject.thread_local.api.ThreadLocalManager"/></property>
 		<property name="sessionManager"><ref bean="org.sakaiproject.webapp.api.SessionManager"/></property>
+		<property name="eventTrackingService"><ref bean="org.sakaiproject.event.api.EventTrackingService"/></property>
+		<property name="authzGroupService"><ref bean="org.sakaiproject.authz.api.AuthzGroupService"/></property>
 		<property name="idManager"><ref bean="org.sakaiproject.id.api.IdManager"/></property>
+		<property name="userDirectoryService"><ref bean="org.sakaiproject.user.api.UerDirectoryService"/></property>
 		<property name="autoDdl"><value>${auto.ddl}</value></property>
 	</bean>
 

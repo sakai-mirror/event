@@ -24,6 +24,10 @@ package org.sakaiproject.event.api;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.sakaiproject.user.api.Authentication;
+
 /**
  * <p>
  * UsageSessionService keeps track of usage sessions.
@@ -65,14 +69,6 @@ public interface UsageSessionService
 	 * @return The UsageSession object holding the information about this session.
 	 */
 	UsageSession getSession();
-
-	/**
-	 * Access the user id from the usage session associated with the current request or thread.
-	 * 
-	 * @return The user id from the usage session associated with the current request or thread, or null if there is none.
-	 * @deprecated Use SessionManager.getCurrentSessionUserId()
-	 */
-	String getSessionUserId();
 
 	/**
 	 * Access the session id from the usage session associated with the current request or thread, or null if no session.
@@ -155,4 +151,21 @@ public interface UsageSessionService
 	 * @return a Map (server id -> List (UsageSession)) of all open sessions, ordered by server, then by start (asc)
 	 */
 	Map getOpenSessionsByServer();
+	
+	/**
+	 * Start a usage session and do any other book-keeping needed to login a user who has already been authenticated.
+	 * 
+	 * @param authn
+	 *        The user authentication.
+	 * @param req
+	 *        The servlet request.
+	 * @return true if all went well, false if not (may fail if the userId is not a valid User)
+	 */
+	boolean login(Authentication authn, HttpServletRequest req);
+	
+	/**
+	 * End a usage session and otherwise cleanup from a login.
+	 *
+	 */
+	void logout();
 }
