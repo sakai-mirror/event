@@ -107,6 +107,13 @@
 
 		<resources>
 
+			<resource>
+				<directory>${basedir}/src/sql</directory>
+				<includes>
+					<include>**/*.sql</include>
+				</includes>
+			</resource>
+
 		</resources>
 
 	</build>
