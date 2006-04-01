@@ -115,7 +115,7 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 	 */
 	protected String getAccessPoint(boolean relative)
 	{
-		return (relative ? "" : m_serverConfigurationService.getAccessUrl()) + m_relativeAccessPoint;
+		return (relative ? "" : serverConfigurationService().getAccessUrl()) + m_relativeAccessPoint;
 	}
 
 	/**
@@ -147,50 +147,23 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 	}
 
 	/**********************************************************************************************************************************************************************************************************************************************************
-	 * Dependencies and their setter methods
+	 * Dependencies
 	 *********************************************************************************************************************************************************************************************************************************************************/
 
-	/** Dependency: event tracking service */
-	protected EventTrackingService m_eventTrackingService = null;
+	/**
+	 * @return the EventTrackingService collaborator.
+	 */
+	protected abstract EventTrackingService eventTrackingService();
 
 	/**
-	 * Dependency: event tracking service.
-	 * 
-	 * @param service
-	 *        The event tracking service.
+	 * @return the ServerConfigurationService collaborator.
 	 */
-	public void setEventTrackingService(EventTrackingService service)
-	{
-		m_eventTrackingService = service;
-	}
-
-	/** Dependency: config */
-	protected ServerConfigurationService m_serverConfigurationService = null;
+	protected abstract ServerConfigurationService serverConfigurationService();
 
 	/**
-	 * Dependency: config service.
-	 * 
-	 * @param service
-	 *        The config service.
+	 * @return the IdManager collaborator.
 	 */
-	public void setServerConfigurationService(ServerConfigurationService service)
-	{
-		m_serverConfigurationService = service;
-	}
-
-	/** Dependency: id */
-	protected IdManager m_idManager = null;
-
-	/**
-	 * Dependency: id service.
-	 * 
-	 * @param service
-	 *        The id service.
-	 */
-	public void setIdManager(IdManager service)
-	{
-		m_idManager = service;
-	}
+	protected abstract IdManager idManager();
 
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
@@ -218,7 +191,7 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 			m_cache = new NotificationCache(this, notificationReference(""));
 
 			// start watching the events - only those generated on this server, not those from elsewhere
-			m_eventTrackingService.addLocalObserver(this);
+			eventTrackingService().addLocalObserver(this);
 
 			M_log.info(this + ".init()");
 		}
@@ -234,7 +207,7 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 	public void destroy()
 	{
 		// done with event watching
-		m_eventTrackingService.deleteObserver(this);
+		eventTrackingService().deleteObserver(this);
 
 		// clean up cache
 		m_cache.clear();
@@ -264,7 +237,7 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 		// unlock(SECURE_ADD_NOTIFICATION, notificationReference(id));
 
 		// get a new unique id
-		String id = m_idManager.createUuid();
+		String id = idManager().createUuid();
 
 		// reserve a notification with this id from the info store - if it's in use, this will return null
 		NotificationEdit notification = m_storage.put(id);
@@ -381,8 +354,9 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 		m_storage.commit(notification);
 
 		// track it
-		m_eventTrackingService.post(m_eventTrackingService.newEvent(((BaseNotificationEdit) notification).getEvent(), notification
-				.getReference(), true));
+		eventTrackingService().post(
+				eventTrackingService()
+						.newEvent(((BaseNotificationEdit) notification).getEvent(), notification.getReference(), true));
 
 		// close the edit object
 		((BaseNotificationEdit) notification).closeEdit();
@@ -440,7 +414,7 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 		m_storage.remove(notification);
 
 		// track it
-		m_eventTrackingService.post(m_eventTrackingService.newEvent(SECURE_REMOVE_NOTIFICATION, notification.getReference(), true));
+		eventTrackingService().post(eventTrackingService().newEvent(SECURE_REMOVE_NOTIFICATION, notification.getReference(), true));
 
 		// close the edit object
 		((BaseNotificationEdit) notification).closeEdit();

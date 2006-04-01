@@ -33,7 +33,7 @@ import org.sakaiproject.event.api.Event;
  * Events are just logged, and observers notified.
  * </p>
  */
-public class BasicEventTracking extends BaseEventTrackingService
+public abstract class BasicEventTracking extends BaseEventTrackingService
 {
 	/** Our logger. */
 	private static Log M_log = LogFactory.getLog(BasicEventTracking.class);

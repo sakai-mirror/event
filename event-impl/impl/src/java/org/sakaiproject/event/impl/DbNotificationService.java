@@ -38,7 +38,7 @@ import org.sakaiproject.util.StorageUser;
  * DbNotificationService is ... %%%.
  * </p>
  */
-public class DbNotificationService extends BaseNotificationService
+public abstract class DbNotificationService extends BaseNotificationService
 {
 	/** Our logger. */
 	private static Log M_log = LogFactory.getLog(DbNotificationService.class);
@@ -50,22 +50,17 @@ public class DbNotificationService extends BaseNotificationService
 	protected boolean m_locksInDb = true;
 
 	/**********************************************************************************************************************************************************************************************************************************************************
-	 * Constructors, Dependencies and their setter methods
+	 * Dependencies
 	 *********************************************************************************************************************************************************************************************************************************************************/
 
-	/** Dependency: SqlService */
-	protected SqlService m_sqlService = null;
-
 	/**
-	 * Dependency: SqlService.
-	 * 
-	 * @param service
-	 *        The SqlService.
+	 * @return the MemoryService collaborator.
 	 */
-	public void setSqlService(SqlService service)
-	{
-		m_sqlService = service;
-	}
+	protected abstract SqlService sqlService();
+
+	/**********************************************************************************************************************************************************************************************************************************************************
+	 * Configuration
+	 *********************************************************************************************************************************************************************************************************************************************************/
 
 	/**
 	 * Configuration: set the table name
@@ -117,7 +112,7 @@ public class DbNotificationService extends BaseNotificationService
 			// if we are auto-creating our schema, check and create
 			if (m_autoDdl)
 			{
-				m_sqlService.ddl(this.getClass().getClassLoader(), "sakai_notification");
+				sqlService().ddl(this.getClass().getClassLoader(), "sakai_notification");
 			}
 
 			super.init();
@@ -158,7 +153,7 @@ public class DbNotificationService extends BaseNotificationService
 		 */
 		public DbStorage(StorageUser user)
 		{
-			super(m_tableName, "NOTIFICATION_ID", null, m_locksInDb, "notification", user, m_sqlService);
+			super(m_tableName, "NOTIFICATION_ID", null, m_locksInDb, "notification", user, sqlService());
 		}
 
 		public boolean check(String id)

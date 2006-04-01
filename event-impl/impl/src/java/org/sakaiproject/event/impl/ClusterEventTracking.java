@@ -46,7 +46,7 @@ import org.sakaiproject.util.StringUtil;
  * Events are backed in the cluster database, and this database is polled to read and process locally events posted by the other cluster members.
  * </p>
  */
-public class ClusterEventTracking extends BaseEventTrackingService implements Runnable
+public abstract class ClusterEventTracking extends BaseEventTrackingService implements Runnable
 {
 	/** Our logger. */
 	private static Log M_log = LogFactory.getLog(ClusterEventTracking.class);
@@ -67,7 +67,26 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 	protected Collection m_eventQueue = null;
 
 	/**********************************************************************************************************************************************************************************************************************************************************
-	 * Constructors, Dependencies and their setter methods
+	 * Dependencies
+	 *********************************************************************************************************************************************************************************************************************************************************/
+
+	/**
+	 * @return the MemoryService collaborator.
+	 */
+	protected abstract SqlService sqlService();
+
+	/**
+	 * @return the ServerConfigurationService collaborator.
+	 */
+	protected abstract ServerConfigurationService serverConfigurationService();
+
+	/**
+	 * @return the TimeService collaborator.
+	 */
+	protected abstract TimeService timeService();
+
+	/**********************************************************************************************************************************************************************************************************************************************************
+	 * Configuration
 	 *********************************************************************************************************************************************************************************************************************************************************/
 
 	/** Unless false, check the db for events from the other cluster servers. */
@@ -108,42 +127,6 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 		catch (Exception any)
 		{
 		}
-	}
-
-	/** Dependency: SqlService. */
-	protected SqlService m_sqlService = null;
-
-	/**
-	 * Dependency: SqlService.
-	 * 
-	 * @param value
-	 *        The SqlService.
-	 */
-	public void setSqlService(SqlService service)
-	{
-		m_sqlService = service;
-	}
-
-	/** Dependency: configuration service. */
-	protected ServerConfigurationService m_serverConfigurationService = null;
-
-	/**
-	 * Dependency: configuration service
-	 */
-	public void setServerConfigurationService(ServerConfigurationService service)
-	{
-		m_serverConfigurationService = service;
-	}
-
-	/** Dependency: TimeService. */
-	protected TimeService m_timeService = null;
-
-	/**
-	 * Dependency: TimeService.
-	 */
-	public void setTimeService(TimeService service)
-	{
-		m_timeService = service;
 	}
 
 	/** Configuration: to run the ddl on init or not. */
@@ -188,7 +171,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 			// if we are auto-creating our schema, check and create
 			if (m_autoDdl)
 			{
-				m_sqlService.ddl(this.getClass().getClassLoader(), "sakai_event");
+				sqlService().ddl(this.getClass().getClassLoader(), "sakai_event");
 			}
 
 			super.init();
@@ -239,7 +222,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 	protected void postEvent(Event event)
 	{
 		// mark the event time
-		((BaseEvent) event).m_time = m_timeService.newTime();
+		((BaseEvent) event).m_time = timeService().newTime();
 
 		// notify locally generated events immediately -
 		// they will not be process again when read back from the database
@@ -279,7 +262,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 		bindValues(event, fields);
 
 		// process the insert
-		boolean ok = m_sqlService.dbWrite(conn, statement, fields);
+		boolean ok = sqlService().dbWrite(conn, statement, fields);
 		if (!ok)
 		{
 			M_log.warn(this + ".writeEvent(): dbWrite failed: session: " + fields[3] + " event: " + event.toString());
@@ -299,7 +282,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 		boolean wasCommit = true;
 		try
 		{
-			conn = m_sqlService.borrowConnection();
+			conn = sqlService().borrowConnection();
 			wasCommit = conn.getAutoCommit();
 			if (wasCommit)
 			{
@@ -319,7 +302,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 				bindValues(event, fields);
 
 				// process the insert
-				boolean ok = m_sqlService.dbWrite(conn, statement, fields);
+				boolean ok = sqlService().dbWrite(conn, statement, fields);
 				if (!ok)
 				{
 					M_log.warn(this + ".writeBatchEvents(): dbWrite failed: session: " + fields[3] + " event: " + event.toString());
@@ -359,7 +342,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 				{
 					M_log.warn(this + ".writeBatchEvents, while setting auto commit: " + e);
 				}
-				m_sqlService.returnConnection(conn);
+				sqlService().returnConnection(conn);
 			}
 		}
 	}
@@ -372,7 +355,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 	protected String insertStatement()
 	{
 		String statement;
-		if ("oracle".equals(m_sqlService.getVendor()))
+		if ("oracle".equals(sqlService().getVendor()))
 		{
 			statement = "insert into SAKAI_EVENT" + " (EVENT_ID,EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)" + " values ("
 			// form the id based on the sequence
@@ -390,7 +373,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 
 					+ " )";
 		}
-		else if ("mysql".equals(m_sqlService.getVendor()))
+		else if ("mysql".equals(sqlService().getVendor()))
 		{
 			// leave out the EVENT_ID as it will be automatically generated on the server
 			statement = "insert into SAKAI_EVENT" + " (EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)" + " values ("
@@ -408,7 +391,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 					+ " )";
 		}
 		else
-		// if ("hsqldb".equals(m_sqlService.getVendor()))
+		// if ("hsqldb".equals(sqlService().getVendor()))
 		{
 			statement = "insert into SAKAI_EVENT" + " (EVENT_ID,EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)" + " values ("
 			// form the id based on the sequence
@@ -449,7 +432,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 		else
 		{
 			// form an id based on the cluster server's id and the event user id
-			reportId = "~" + m_serverConfigurationService.getServerId() + "~" + event.getUserId();
+			reportId = "~" + serverConfigurationService().getServerId() + "~" + event.getUserId();
 		}
 
 		fields[0] = ((BaseEvent) event).m_time;
@@ -498,8 +481,8 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 		// loop till told to stop
 		while ((!m_threadStop) && (!Thread.currentThread().isInterrupted()))
 		{
-			final String serverInstance = m_serverConfigurationService.getServerIdInstance();
-			final String serverId = m_serverConfigurationService.getServerId();
+			final String serverInstance = serverConfigurationService().getServerIdInstance();
+			final String serverId = serverConfigurationService().getServerId();
 
 			try
 			{
@@ -526,7 +509,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 				// check the db for new events
 				// Note: the events may not all have sessions, so to get them we need an outer join.
 				// TODO: switch to a "view" read once that's established, for now, a join -ggolden
-				if ("oracle".equals(m_sqlService.getVendor()))
+				if ("oracle".equals(sqlService().getVendor()))
 				{
 					// this now has Oracle specific hint to improve performance with large tables -ggolden
 					statement = "select /*+ FIRST_ROWS */ EVENT_ID,EVENT_DATE,EVENT,REF,SAKAI_EVENT.SESSION_ID,EVENT_CODE,SESSION_SERVER"
@@ -545,7 +528,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 				Object[] fields = new Object[1];
 				fields[0] = new Long(m_lastEventSeq);
 
-				List events = m_sqlService.dbRead(statement, fields, new SqlReader()
+				List events = sqlService().dbRead(statement, fields, new SqlReader()
 				{
 					public Object readSqlResultRecord(ResultSet result)
 					{
@@ -553,7 +536,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 						{
 							// read the Event
 							long id = result.getLong(1);
-							Time date = m_timeService.newTime(result.getTimestamp(2, m_sqlService.getCal()).getTime());
+							Time date = timeService().newTime(result.getTimestamp(2, sqlService().getCal()).getTime());
 							String function = result.getString(3);
 							String ref = result.getString(4);
 							String session = result.getString(5);
@@ -642,7 +625,7 @@ public class ClusterEventTracking extends BaseEventTrackingService implements Ru
 	{
 		String statement = "select MAX(EVENT_ID) from SAKAI_EVENT";
 
-		m_sqlService.dbRead(statement, null, new SqlReader()
+		sqlService().dbRead(statement, null, new SqlReader()
 		{
 			public Object readSqlResultRecord(ResultSet result)
 			{

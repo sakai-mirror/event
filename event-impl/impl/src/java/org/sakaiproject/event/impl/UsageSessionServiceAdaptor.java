@@ -59,10 +59,10 @@ import org.sakaiproject.webapp.api.ToolSession;
 
 /**
  * <p>
- * UsageSessionServiceAdaptor implements Sakai1's UsageSessionService for Sakai. The Session aspects are done as an adaptor to the SessionManager. UsageSession entities are handled as was in the ClusterUsageSessionService.
+ * UsageSessionServiceAdaptor implements the UsageSessionService. The Session aspects are done as an adaptor to the SessionManager. UsageSession entities are handled as was in the ClusterUsageSessionService.
  * </p>
  */
-public class UsageSessionServiceAdaptor implements UsageSessionService
+public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 {
 	/** Our log (commons). */
 	private static Log M_log = LogFactory.getLog(UsageSessionServiceAdaptor.class);
@@ -83,92 +83,55 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 	}
 
 	/**********************************************************************************************************************************************************************************************************************************************************
-	 * Dependencies and their setter methods
+	 * Dependencies
 	 *********************************************************************************************************************************************************************************************************************************************************/
 
-	/** Dependency: TimeService. */
-	protected TimeService m_timeService = null;
-
 	/**
-	 * Dependency: TimeService.
-	 * 
-	 * @param service
-	 *        The TimeService.
+	 * @return the TimeService collaborator.
 	 */
-	public void setTimeService(TimeService service)
-	{
-		m_timeService = service;
-	}
+	protected abstract TimeService timeService();
 
 	/** Dependency: SqlService. */
-	protected SqlService m_sqlService = null;
+	/**
+	 * @return the SqlService collaborator.
+	 */
+	protected abstract SqlService sqlService();
 
 	/**
-	 * Dependency: SqlService.
-	 * 
-	 * @param service
-	 *        The SqlService.
+	 * @return the ServerConfigurationService collaborator.
 	 */
-	public void setSqlService(SqlService service)
-	{
-		m_sqlService = service;
-	}
-
-	/** Dependency: ServerConfigurationService. */
-	protected ServerConfigurationService m_serverConfigurationService = null;
+	protected abstract ServerConfigurationService serverConfigurationService();
 
 	/**
-	 * Dependency: ServerConfigurationService.
-	 * 
-	 * @param service
-	 *        The ServerConfigurationService.
+	 * @return the ThreadLocalManager collaborator.
 	 */
-	public void setServerConfigurationService(ServerConfigurationService service)
-	{
-		m_serverConfigurationService = service;
-	}
-
-	/** Dependency: the current manager. */
-	protected ThreadLocalManager m_threadLocalManager = null;
+	protected abstract ThreadLocalManager threadLocalManager();
 
 	/**
-	 * Dependency - set the current manager.
-	 * 
-	 * @param value
-	 *        The current manager.
+	 * @return the SessionManager collaborator.
 	 */
-	public void setThreadLocalManager(ThreadLocalManager manager)
-	{
-		m_threadLocalManager = manager;
-	}
-
-	/** Dependency: the session manager. */
-	protected SessionManager m_sessionManager = null;
+	protected abstract SessionManager sessionManager();
+	/**
+	 * @return the IdManager collaborator.
+	 */
+	protected abstract IdManager idManager();
+	/**
+	 * @return the EventTrackingService collaborator.
+	 */
+	protected abstract EventTrackingService eventTrackingService();
+	/**
+	 * @return the AuthzGroupService collaborator.
+	 */
+	protected abstract AuthzGroupService authzGroupService();
 
 	/**
-	 * Dependency - set the session manager.
-	 * 
-	 * @param value
-	 *        The session manager.
+	 * @return the UserDirectoryService collaborator.
 	 */
-	public void setSessionManager(SessionManager manager)
-	{
-		m_sessionManager = manager;
-	}
+	protected abstract UserDirectoryService userDirectoryService();
 
-	/** Dependency: the id manager. */
-	protected IdManager m_idManager = null;
-
-	/**
-	 * Dependency - set the id manager.
-	 * 
-	 * @param value
-	 *        The id manager.
-	 */
-	public void setIdManager(IdManager manager)
-	{
-		m_idManager = manager;
-	}
+	/**********************************************************************************************************************************************************************************************************************************************************
+	 * Configuration
+	 *********************************************************************************************************************************************************************************************************************************************************/
 
 	/** Configuration: to run the ddl on init or not. */
 	protected boolean m_autoDdl = false;
@@ -182,48 +145,6 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 	public void setAutoDdl(String value)
 	{
 		m_autoDdl = new Boolean(value).booleanValue();
-	}
-
-	/** Dependency: EventTrackingService. */
-	protected EventTrackingService m_eventTrackingService = null;
-
-	/**
-	 * Dependency: EventTrackingService.
-	 * 
-	 * @param service
-	 *        The EventTrackingService.
-	 */
-	public void setEventTrackingService(EventTrackingService service)
-	{
-		m_eventTrackingService = service;
-	}
-
-	/** Dependency: AuthzGroupService. */
-	protected AuthzGroupService m_authzGroupService = null;
-
-	/**
-	 * Dependency: AuthzGroupService.
-	 * 
-	 * @param service
-	 *        The AuthzGroupService.
-	 */
-	public void setAuthzGroupService(AuthzGroupService service)
-	{
-		m_authzGroupService = service;
-	}
-
-	/** Dependency: UserDirectoryService. */
-	protected UserDirectoryService m_userDirectoryService = null;
-
-	/**
-	 * Dependency: UserDirectoryService.
-	 * 
-	 * @param service
-	 *        The UserDirectoryService.
-	 */
-	public void setUserDirectoryService(UserDirectoryService service)
-	{
-		m_userDirectoryService = service;
 	}
 
 	/**********************************************************************************************************************************************************************************************************************************************************
@@ -273,7 +194,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 	public UsageSession startSession(String userId, String remoteAddress, String userAgent)
 	{
 		// do we have a current session?
-		Session s = m_sessionManager.getCurrentSession();
+		Session s = sessionManager().getCurrentSession();
 		if (s != null)
 		{
 			UsageSession session = (UsageSession) s.getAttribute(USAGE_SESSION_KEY);
@@ -292,7 +213,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 			}
 
 			// create the usage session and bind it to the session
-			session = new BaseUsageSession(m_idManager.createUuid(), m_serverConfigurationService.getServerIdInstance(), userId,
+			session = new BaseUsageSession(idManager().createUuid(), serverConfigurationService().getServerIdInstance(), userId,
 					remoteAddress, userAgent, null, null);
 
 			// store
@@ -316,7 +237,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		UsageSession rv = null;
 
 		// do we have a current session?
-		Session s = m_sessionManager.getCurrentSession();
+		Session s = sessionManager().getCurrentSession();
 		if (s != null)
 		{
 			// do we have a usage session in the session?
@@ -343,11 +264,11 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		// be a session manager yet. This adaptor may be called before all components
 		// are initialized since there are hidden dependencies (through static covers)
 		// of which Spring is not aware. Therefore, check for and handle a null
-		// m_sessionManager.
-		if (m_sessionManager == null) return null;
+		// sessionManager().
+		if (sessionManager() == null) return null;
 
 		// do we have a current session?
-		Session s = m_sessionManager.getCurrentSession();
+		Session s = sessionManager().getCurrentSession();
 		if (s != null)
 		{
 			// do we have a usage session in the session?
@@ -368,7 +289,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 	public SessionState getSessionState(String key)
 	{
 		// map this to the sakai session's tool session concept, using key as the placement id
-		Session s = m_sessionManager.getCurrentSession();
+		Session s = sessionManager().getCurrentSession();
 		if (s != null)
 		{
 			return new SessionStateWrapper(s.getToolSession(key));
@@ -504,15 +425,15 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		}
 
 		// set the user information into the current session
-		Session sakaiSession = m_sessionManager.getCurrentSession();
+		Session sakaiSession = sessionManager().getCurrentSession();
 		sakaiSession.setUserId(authn.getUid());
 		sakaiSession.setUserEid(authn.getEid());
 
 		// update the user's externally provided realm definitions
-		m_authzGroupService.refreshUser(authn.getUid());
+		authzGroupService().refreshUser(authn.getUid());
 
 		// post the login event
-		m_eventTrackingService.post(m_eventTrackingService.newEvent(EVENT_LOGIN, null, true));
+		eventTrackingService().post(eventTrackingService().newEvent(EVENT_LOGIN, null, true));
 
 		return true;
 	}
@@ -522,11 +443,11 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 	 */
 	public void logout()
 	{
-		m_userDirectoryService.destroyAuthentication();
+		userDirectoryService().destroyAuthentication();
 
 		// invalidate the sakai session, which makes it unavailable, unbinds all the bound objects,
 		// including the session, which will close and generate the logout event
-		Session sakaiSession = m_sessionManager.getCurrentSession();
+		Session sakaiSession = sessionManager().getCurrentSession();
 		sakaiSession.invalidate();
 	}
 
@@ -538,12 +459,12 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		if (session == null)
 		{
 			// generate a logout event (current session)
-			m_eventTrackingService.post(m_eventTrackingService.newEvent(EVENT_LOGOUT, null, true));
+			eventTrackingService().post(eventTrackingService().newEvent(EVENT_LOGOUT, null, true));
 		}
 		else
 		{
 			// generate a logout event (this session)
-			m_eventTrackingService.post(m_eventTrackingService.newEvent(EVENT_LOGOUT, null, true), session);
+			eventTrackingService().post(eventTrackingService().newEvent(EVENT_LOGOUT, null, true), session);
 		}
 	}
 
@@ -675,7 +596,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 			}
 			else
 			{
-				m_start = m_timeService.newTime();
+				m_start = timeService().newTime();
 				m_end = m_start;
 			}
 			setBrowserId(agent);
@@ -737,7 +658,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		{
 			if (!isClosed())
 			{
-				m_end = m_timeService.newTime();
+				m_end = timeService().newTime();
 				m_storage.closeSession(this);
 			}
 		}
@@ -803,7 +724,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		 */
 		public Time getStart()
 		{
-			return m_timeService.newTime(m_start.getTime());
+			return timeService().newTime(m_start.getTime());
 		}
 
 		/**
@@ -811,7 +732,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 		 */
 		public Time getEnd()
 		{
-			return m_timeService.newTime(m_end.getTime());
+			return timeService().newTime(m_end.getTime());
 		}
 
 		/**
@@ -1120,7 +1041,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 			// if we are auto-creating our schema, check and create
 			if (m_autoDdl)
 			{
-				m_sqlService.ddl(this.getClass().getClassLoader(), "sakai_session");
+				sqlService().ddl(this.getClass().getClassLoader(), "sakai_session");
 			}
 		}
 
@@ -1154,7 +1075,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 			fields[6] = session.getEnd();
 
 			// process the insert
-			boolean ok = m_sqlService.dbWrite(statement, fields);
+			boolean ok = sqlService().dbWrite(statement, fields);
 			if (!ok)
 			{
 				M_log.warn(".addSession(): dbWrite failed");
@@ -1183,7 +1104,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 			Object[] fields = new Object[1];
 			fields[0] = id;
 
-			List sessions = m_sqlService.dbRead(statement, fields, new SqlReader()
+			List sessions = sqlService().dbRead(statement, fields, new SqlReader()
 			{
 				public Object readSqlResultRecord(ResultSet result)
 				{
@@ -1195,8 +1116,8 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 						String userId = result.getString(3);
 						String ip = result.getString(4);
 						String agent = result.getString(5);
-						Time start = m_timeService.newTime(result.getTimestamp(6, m_sqlService.getCal()).getTime());
-						Time end = m_timeService.newTime(result.getTimestamp(7, m_sqlService.getCal()).getTime());
+						Time start = timeService().newTime(result.getTimestamp(6, sqlService().getCal()).getTime());
+						Time end = timeService().newTime(result.getTimestamp(7, sqlService().getCal()).getTime());
 
 						UsageSession session = new BaseUsageSession(id, server, userId, ip, agent, start, end);
 						return session;
@@ -1251,7 +1172,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 			String statement = "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END"
 					+ " from SAKAI_SESSION where SESSION_ID IN ( " + criteria + " )";
 
-			List sessions = m_sqlService.dbRead(statement, values, new SqlReader()
+			List sessions = sqlService().dbRead(statement, values, new SqlReader()
 			{
 				public Object readSqlResultRecord(ResultSet result)
 				{
@@ -1263,8 +1184,8 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 						String userId = result.getString(3);
 						String ip = result.getString(4);
 						String agent = result.getString(5);
-						Time start = m_timeService.newTime(result.getTimestamp(6, m_sqlService.getCal()).getTime());
-						Time end = m_timeService.newTime(result.getTimestamp(7, m_sqlService.getCal()).getTime());
+						Time start = timeService().newTime(result.getTimestamp(6, sqlService().getCal()).getTime());
+						Time end = timeService().newTime(result.getTimestamp(7, sqlService().getCal()).getTime());
 
 						UsageSession session = new BaseUsageSession(id, server, userId, ip, agent, start, end);
 						return session;
@@ -1296,7 +1217,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 			fields[1] = session.getId();
 
 			// process the statement
-			boolean ok = m_sqlService.dbWrite(statement, fields);
+			boolean ok = sqlService().dbWrite(statement, fields);
 			if (!ok)
 			{
 				M_log.warn(".closeSession(): dbWrite failed");
@@ -1317,7 +1238,7 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 			String statement = "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END"
 					+ " from SAKAI_SESSION where SESSION_START = SESSION_END ORDER BY SESSION_SERVER ASC, SESSION_START ASC";
 
-			List sessions = m_sqlService.dbRead(statement, null, new SqlReader()
+			List sessions = sqlService().dbRead(statement, null, new SqlReader()
 			{
 				public Object readSqlResultRecord(ResultSet result)
 				{
@@ -1329,8 +1250,8 @@ public class UsageSessionServiceAdaptor implements UsageSessionService
 						String userId = result.getString(3);
 						String ip = result.getString(4);
 						String agent = result.getString(5);
-						Time start = m_timeService.newTime(result.getTimestamp(6, m_sqlService.getCal()).getTime());
-						Time end = m_timeService.newTime(result.getTimestamp(7, m_sqlService.getCal()).getTime());
+						Time start = timeService().newTime(result.getTimestamp(6, sqlService().getCal()).getTime());
+						Time end = timeService().newTime(result.getTimestamp(7, sqlService().getCal()).getTime());
 
 						UsageSession session = new BaseUsageSession(id, server, userId, ip, agent, start, end);
 						return session;

@@ -117,36 +117,18 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 	}
 
 	/**********************************************************************************************************************************************************************************************************************************************************
-	 * Dependencies and their setter methods
+	 * Dependencies
 	 *********************************************************************************************************************************************************************************************************************************************************/
 
-	/** Dependency: the usage session service. */
-	protected UsageSessionService m_usageSessionService = null;
+	/**
+	 * @return the UsageSessionService collaborator.
+	 */
+	protected abstract UsageSessionService usageSessionService();
 
 	/**
-	 * Dependency - set the usage session service.
-	 * 
-	 * @param value
-	 *        The usage session service.
+	 * @return the SessionManager collaborator.
 	 */
-	public void setUsageSessionService(UsageSessionService manager)
-	{
-		m_usageSessionService = manager;
-	}
-
-	/** Dependency: the session manager. */
-	protected SessionManager m_sessionManager = null;
-
-	/**
-	 * Dependency - set the session manager.
-	 * 
-	 * @param value
-	 *        The session manager.
-	 */
-	public void setSessionManager(SessionManager manager)
-	{
-		m_sessionManager = manager;
-	}
+	protected abstract SessionManager sessionManager();
 
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
@@ -215,7 +197,7 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 	public void post(Event event)
 	{
 		// get the session id or user id
-		String id = m_usageSessionService.getSessionId();
+		String id = usageSessionService().getSessionId();
 		if (id != null)
 		{
 			((BaseEvent) event).setSessionId(id);
@@ -225,7 +207,7 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 		// post for the session "thread" user
 		else
 		{
-			id = m_sessionManager.getCurrentSessionUserId();
+			id = sessionManager().getCurrentSessionUserId();
 			if (id == null)
 			{
 				id = "?";
