@@ -32,6 +32,7 @@ import java.util.Vector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sakaiproject.component.api.ServerConfigurationService;
+import org.sakaiproject.component.cover.ComponentManager;
 import org.sakaiproject.db.api.SqlReader;
 import org.sakaiproject.db.api.SqlService;
 import org.sakaiproject.event.api.Event;
@@ -478,6 +479,10 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	 */
 	public void run()
 	{
+		// since we might be running while the component manager is still being created and populated, such as at server
+		// startup, wait here for a complete component manager
+		ComponentManager.getInstance();
+
 		// loop till told to stop
 		while ((!m_threadStop) && (!Thread.currentThread().isInterrupted()))
 		{

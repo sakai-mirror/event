@@ -3,7 +3,6 @@
 
 <beans>
 
-<!--
 	<bean id="org.sakaiproject.event.api.EventTrackingService"
 			class="org.sakaiproject.event.impl.ClusterEventTracking"
 			init-method="init"
@@ -21,9 +20,9 @@
  		<property name="period"><value>5</value></property>
  		<property name="batchWrite"><value>true</value></property>
 	</bean>
--->
+
 	<!-- alternate, non-storage, non-clustered impl -->
-	<!-- -->
+	<!--
 	<bean id="org.sakaiproject.event.api.EventTrackingService"
 			class="org.sakaiproject.event.impl.BasicEventTracking"
 			init-method="init"
@@ -34,7 +33,7 @@
 		<lookup-method name="sessionManager" bean="org.sakaiproject.webapp.api.SessionManager" />
 
 	</bean>
-	<!-- -->
+	-->
 
 	<bean id="org.sakaiproject.service.event.api.NotificationService"
 			class="org.sakaiproject.event.impl.DbNotificationService"
