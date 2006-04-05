@@ -35,7 +35,7 @@
 	</bean>
 	-->
 
-	<bean id="org.sakaiproject.service.event.api.NotificationService"
+	<bean id="org.sakaiproject.event.api.NotificationService"
 			class="org.sakaiproject.event.impl.DbNotificationService"
 			init-method="init"
 			destroy-method="destroy"
