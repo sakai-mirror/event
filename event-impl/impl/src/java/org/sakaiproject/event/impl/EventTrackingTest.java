@@ -25,7 +25,7 @@ import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.db.api.SqlService;
 import org.sakaiproject.event.api.UsageSessionService;
 import org.sakaiproject.time.api.TimeService;
-import org.sakaiproject.webapp.api.SessionManager;
+import org.sakaiproject.tool.api.SessionManager;
 
 /**
  * <p>

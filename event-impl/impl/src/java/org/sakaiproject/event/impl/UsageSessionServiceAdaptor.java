@@ -51,11 +51,11 @@ import org.sakaiproject.time.api.Time;
 import org.sakaiproject.time.api.TimeService;
 import org.sakaiproject.user.api.Authentication;
 import org.sakaiproject.user.api.UserDirectoryService;
-import org.sakaiproject.webapp.api.Session;
-import org.sakaiproject.webapp.api.SessionBindingEvent;
-import org.sakaiproject.webapp.api.SessionBindingListener;
-import org.sakaiproject.webapp.api.SessionManager;
-import org.sakaiproject.webapp.api.ToolSession;
+import org.sakaiproject.tool.api.Session;
+import org.sakaiproject.tool.api.SessionBindingEvent;
+import org.sakaiproject.tool.api.SessionBindingListener;
+import org.sakaiproject.tool.api.SessionManager;
+import org.sakaiproject.tool.api.ToolSession;
 
 /**
  * <p>

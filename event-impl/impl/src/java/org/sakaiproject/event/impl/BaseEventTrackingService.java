@@ -34,7 +34,7 @@ import org.sakaiproject.event.api.UsageSession;
 import org.sakaiproject.event.api.UsageSessionService;
 import org.sakaiproject.time.api.Time;
 import org.sakaiproject.user.api.User;
-import org.sakaiproject.webapp.api.SessionManager;
+import org.sakaiproject.tool.api.SessionManager;
 
 /**
  * <p>
