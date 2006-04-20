@@ -31,6 +31,7 @@ import java.util.Vector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sakaiproject.component.api.ServerConfigurationService;
+import org.sakaiproject.component.cover.ComponentManager;
 import org.sakaiproject.entity.api.Edit;
 import org.sakaiproject.entity.api.Entity;
 import org.sakaiproject.entity.api.ResourceProperties;
@@ -206,8 +207,11 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 	 */
 	public void destroy()
 	{
-		// done with event watching
-		eventTrackingService().deleteObserver(this);
+		// if we are not in a global shutdown, remove my event notification registration
+		if (!ComponentManager.hasBeenClosed())
+		{
+			eventTrackingService().deleteObserver(this);
+		}
 
 		// clean up cache
 		m_cache.clear();
