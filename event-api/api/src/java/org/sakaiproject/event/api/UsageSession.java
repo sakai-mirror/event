@@ -64,11 +64,18 @@ public interface UsageSession extends Comparable
 	String getServer();
 
 	/**
-	 * Access the user object for this session.
+	 * Access the user id for this session.
 	 * 
-	 * @return the user object for this session.
+	 * @return the user id for this session.
 	 */
 	String getUserId();
+
+	/**
+	 * Access the user eid for this session, if known - fallback to the id if not.
+	 * 
+	 * @return The user eid for this session, or the use id if the eid cannot be found.
+	 */
+	String getUserEid();
 
 	/**
 	 * Access the IP Address from which this session originated.

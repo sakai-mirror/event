@@ -49,13 +49,14 @@ import org.sakaiproject.id.api.IdManager;
 import org.sakaiproject.thread_local.api.ThreadLocalManager;
 import org.sakaiproject.time.api.Time;
 import org.sakaiproject.time.api.TimeService;
-import org.sakaiproject.user.api.Authentication;
-import org.sakaiproject.user.api.UserDirectoryService;
 import org.sakaiproject.tool.api.Session;
 import org.sakaiproject.tool.api.SessionBindingEvent;
 import org.sakaiproject.tool.api.SessionBindingListener;
 import org.sakaiproject.tool.api.SessionManager;
 import org.sakaiproject.tool.api.ToolSession;
+import org.sakaiproject.user.api.Authentication;
+import org.sakaiproject.user.api.UserDirectoryService;
+import org.sakaiproject.user.api.UserNotDefinedException;
 
 /**
  * <p>
@@ -677,6 +678,21 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		public String getUserId()
 		{
 			return m_user;
+		}
+		
+		/**
+		 * @inheritDoc
+		 */
+		public String getUserEid()
+		{
+			try
+			{
+				return userDirectoryService().getUserEid(m_user);
+			}
+			catch (UserNotDefinedException e)
+			{
+				return m_user;
+			}
 		}
 
 		/**
