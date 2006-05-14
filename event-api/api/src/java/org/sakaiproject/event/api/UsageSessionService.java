@@ -44,11 +44,11 @@ public interface UsageSessionService
 	/** Name for the global cookie to store the session */
 	public static final String SAKAI_SESSION_COOKIE = "sakai.session";
 
-	/** Name for the session key to retrieve the UsageSession */
 	/**
+	 * Name for the session key to retrieve the UsageSession.
 	 * Note: This must be a constant and not based on classname - it must stay the same regardless of the name of the implementing class.
 	 */
-	public static final String USAGE_SESSION_KEY = "org.sakaiproject.service.framework.session.UsageSessionService";
+	public static final String USAGE_SESSION_KEY = "org.sakaiproject.event.api.UsageSessionService";
 
 	/**
 	 * Establish a usage session associated with the current request or thread.
