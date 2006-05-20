@@ -182,16 +182,13 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 				m_eventQueue = new Vector();
 			}
 
-			// find the latest event in the db, we will start processing events after this
+			// startup the event checking
 			if (m_checkDb)
 			{
-				initLastEvent();
-
-				// startup the event checking
 				start();
 			}
 
-			M_log.info(this + ".init() - period: " + m_period / 1000 + " batch: " + m_batchWrite);
+			M_log.info(this + ".init() - period: " + m_period / 1000 + " batch: " + m_batchWrite + " checkDb: " + m_checkDb);
 		}
 		catch (Throwable t)
 		{
@@ -479,9 +476,11 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	 */
 	public void run()
 	{
-		// since we might be running while the component manager is still being created and populated, such as at server
-		// startup, wait here for a complete component manager
+		// since we might be running while the component manager is still being created and populated, such as at server startup, wait here for a complete component manager
 		ComponentManager.waitTillConfigured();
+
+		// find the latest event in the db
+		initLastEvent();
 
 		// loop till told to stop
 		while ((!m_threadStop) && (!Thread.currentThread().isInterrupted()))
@@ -506,14 +505,16 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 
 					if (myEvents.size() > 0)
 					{
+						if (M_log.isDebugEnabled()) M_log.debug("writing " + myEvents.size() + " batched events");
 						writeBatchEvents(myEvents);
 					}
 				}
 
-				String statement;
+				if (M_log.isDebugEnabled()) M_log.debug("checking for events > " + m_lastEventSeq);
 				// check the db for new events
 				// Note: the events may not all have sessions, so to get them we need an outer join.
 				// TODO: switch to a "view" read once that's established, for now, a join -ggolden
+				String statement = null;
 				if ("oracle".equals(sqlService().getVendor()))
 				{
 					// this now has Oracle specific hint to improve performance with large tables -ggolden
@@ -529,6 +530,12 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 							+ " where (SAKAI_EVENT.SESSION_ID = SAKAI_SESSION.SESSION_ID) and (EVENT_ID > ?)";
 				}
 
+				// we might want a left join, which would get us records from non-sessions, which the above mysql code does NOT give -ggolden
+				//				select e.EVENT_ID,e.EVENT_DATE,e.EVENT,e.REF,e.SESSION_ID,e.EVENT_CODE,s.SESSION_SERVER
+				//				from SAKAI_EVENT e
+				//				left join SAKAI_SESSION s on (e.SESSION_ID = s.SESSION_ID)
+				//				where EVENT_ID > 0
+				
 				// send in the last seq number parameter
 				Object[] fields = new Object[1];
 				fields[0] = new Long(m_lastEventSeq);
@@ -608,7 +615,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 			}
 			catch (Throwable e)
 			{
-				M_log.warn(this + ": exception: ", e);
+				M_log.warn("run: will continue: ", e);
 			}
 
 			// take a small nap
@@ -619,8 +626,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 			catch (Exception ignore)
 			{
 			}
-
-		} // while
+		}
 	}
 
 	/**
