@@ -224,7 +224,14 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 
 		// notify locally generated events immediately -
 		// they will not be process again when read back from the database
-		notifyObservers(event, true);
+		try
+		{
+			notifyObservers(event, true);
+		}
+		catch (Throwable t)
+		{
+			M_log.warn("postEvent, notifyObservers(), event: " + event.toString(), t);
+		}
 
 		// batch the event if we are batching
 		if (m_batchWrite)
