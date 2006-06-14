@@ -55,6 +55,7 @@ import org.sakaiproject.tool.api.SessionBindingListener;
 import org.sakaiproject.tool.api.SessionManager;
 import org.sakaiproject.tool.api.ToolSession;
 import org.sakaiproject.user.api.Authentication;
+import org.sakaiproject.user.api.User;
 import org.sakaiproject.user.api.UserDirectoryService;
 import org.sakaiproject.user.api.UserNotDefinedException;
 
@@ -688,6 +689,22 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			try
 			{
 				return userDirectoryService().getUserEid(m_user);
+			}
+			catch (UserNotDefinedException e)
+			{
+				return m_user;
+			}
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public String getUserDisplayId()
+		{
+			try
+			{
+				User user = userDirectoryService().getUser(m_user);
+				return user.getDisplayId();
 			}
 			catch (UserNotDefinedException e)
 			{

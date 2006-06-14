@@ -78,6 +78,13 @@ public interface UsageSession extends Comparable
 	String getUserEid();
 
 	/**
+	 * Access the user display id for this session, if known - fallback to the id if not.
+	 * 
+	 * @return The user display id for this session, or the use id if the user cannot be found.
+	 */
+	String getUserDisplayId();
+
+	/**
 	 * Access the IP Address from which this session originated.
 	 * 
 	 * @return the IP Address from which this session originated.
