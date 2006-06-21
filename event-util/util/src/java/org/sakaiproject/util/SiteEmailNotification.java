@@ -24,10 +24,7 @@ package org.sakaiproject.util;
 import java.util.List;
 import java.util.Vector;
 
-import org.sakaiproject.alias.api.Alias;
-import org.sakaiproject.alias.cover.AliasService;
 import org.sakaiproject.authz.cover.SecurityService;
-import org.sakaiproject.component.cover.ServerConfigurationService;
 import org.sakaiproject.entity.api.Reference;
 import org.sakaiproject.entity.cover.EntityManager;
 import org.sakaiproject.event.api.Event;
@@ -110,8 +107,8 @@ public class SiteEmailNotification extends EmailNotification
 				ability = SiteService.SITE_VISIT_UNPUBLISHED;
 			}
 
-			// get the list of users
-			List users = SecurityService.unlockUsers(ability, SiteService.siteReference(siteId));
+			// get the list of users who can do the right kind of visit
+			List users = SecurityService.unlockUsers(ability, ref.getReference());
 
 			// get the list of users who have the appropriate access to the resource
 			if (getResourceAbility() != null)
@@ -122,6 +119,9 @@ public class SiteEmailNotification extends EmailNotification
 				users.retainAll(users2);
 			}
 
+			// add any other users
+			addSpecialRecipients(users, ref);
+
 			return users;
 		}
 		catch (Exception any)
@@ -129,45 +129,17 @@ public class SiteEmailNotification extends EmailNotification
 			return new Vector();
 		}
 	}
-
+	
 	/**
-	 * Format a To: header value for the site.
+	 * Add to the user list any other users who should be notified about this ref's change.
 	 * 
-	 * @param event
-	 *        The event that matched criteria to cause the notification.
-	 * @return the to: header for the email.
+	 * @param users
+	 *        The user list, already populated based on site visit and resource ability.
+	 * @param ref
+	 *        The entity reference.
 	 */
-	protected String getSiteTo(Event event)
+	protected void addSpecialRecipients(List users, Reference ref)
 	{
-		// get the resource reference
-		Reference ref = EntityManager.newReference(event.getResource());
-
-		// use either the configured site, or if not configured, the site (context) of the resource
-		String siteId = (getSite() != null) ? getSite() : ref.getContext();
-
-		// make the to: field look like the email address of the site
-
-		// select the site's main mail channel alias, or the site's alias, or the site id
-		String siteMailId = siteId;
-
-		// first check aliases for the site's main email channel
-		// TODO: stolen from MailArchiveService to avoid dependency ( MailArchiveService.channelReference(siteId, SiteService.MAIN_CONTAINER) ) -ggolden
-		String channelRef = "/channel/" + siteId + "/" + "main";
-		List aliases = AliasService.getAliases(channelRef, 1, 1);
-		if (aliases.isEmpty())
-		{
-			// next try aliases for the site
-			String siteRef = SiteService.siteReference(siteId);
-			aliases = AliasService.getAliases(siteRef, 1, 1);
-		}
-
-		// if there was an alias
-		if (!aliases.isEmpty())
-		{
-			siteMailId = ((Alias) aliases.get(0)).getId();
-		}
-
-		return siteMailId + " <" + siteMailId + "@" + ServerConfigurationService.getServerName() + ">";
 	}
 
 	/**
