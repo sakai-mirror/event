@@ -24,11 +24,16 @@ package org.sakaiproject.util;
 import java.util.List;
 import java.util.Vector;
 
+import org.sakaiproject.alias.api.Alias;
+import org.sakaiproject.alias.cover.AliasService;
 import org.sakaiproject.authz.cover.SecurityService;
+import org.sakaiproject.component.cover.ServerConfigurationService;
 import org.sakaiproject.entity.api.Reference;
 import org.sakaiproject.entity.cover.EntityManager;
 import org.sakaiproject.event.api.Event;
 import org.sakaiproject.event.api.NotificationAction;
+import org.sakaiproject.event.cover.NotificationService;
+import org.sakaiproject.mailarchive.cover.MailArchiveService;
 import org.sakaiproject.site.api.Site;
 import org.sakaiproject.site.cover.SiteService;
 
@@ -37,22 +42,15 @@ import org.sakaiproject.site.cover.SiteService;
  * SiteEmailNotification is an EmailNotification that selects the site's participants (based on site access) as the recipients of the notification.
  * </p>
  * <p>
- * getRecipients() is satisified here, but you can refine it by implementing getResourceAbility()
- * </p>
- * Although these are not abstract, the following still need be specified to extend the class:
- * <ul>
- * <li>getMessage()</li>
- * <li>getHeaders()</li>
- * <li>getTag()</li>
- * <li>isBodyHTML()</li>
- * <li>headerToRecipient</li>
- * </ul>
+ * getRecipients() is satified here (although it can be customized by the extensions to this class).
  * </p>
  * <p>
- * getClone() should also be extended to clone the proper type of object.
+ * The following should be specified to extend the class:
+ * <ul>
+ * <li>getResourceAbility() - to require an additional permission to qualify as a recipient (other than site membership)</li>
+ * <li>addSpecialRecipients() - to add other recipients</li>
+ * </ul>
  * </p>
- * 
- * @author Sakai Software Development Team
  */
 public class SiteEmailNotification extends EmailNotification
 {
@@ -129,7 +127,7 @@ public class SiteEmailNotification extends EmailNotification
 			return new Vector();
 		}
 	}
-	
+
 	/**
 	 * Add to the user list any other users who should be notified about this ref's change.
 	 * 
@@ -151,5 +149,95 @@ public class SiteEmailNotification extends EmailNotification
 	protected String getResourceAbility()
 	{
 		return null;
+	}
+
+	/**
+	 * Format a to address, sensitive to the notification service's replyable configuration.
+	 * 
+	 * @param event
+	 * @return
+	 */
+	protected String getTo(Event event)
+	{
+		if (NotificationService.isNotificationToReplyable())
+		{
+			// to site title <email>
+			return "To: " + getToSite(event);
+		}
+		else
+		{
+			// to the site, but with no reply
+			return "To: " + getToSiteNoReply(event);
+		}
+	}
+
+	/**
+	 * Format a to address, to the related site, but with no reply.
+	 * 
+	 * @param event
+	 *        The event that matched criteria to cause the notification.
+	 * @return a to address, to the related site, but with no reply.
+	 */
+	protected String getToSiteNoReply(Event event)
+	{
+		Reference ref = EntityManager.newReference(event.getResource());
+
+		// use either the configured site, or if not configured, the site (context) of the resource
+		String siteId = (getSite() != null) ? getSite() : ref.getContext();
+
+		// get a site title
+		String title = siteId;
+		try
+		{
+			Site site = SiteService.getSite(siteId);
+			title = site.getTitle();
+		}
+		catch (Exception ignore)
+		{
+		}
+
+		return "\"" + title + "\"<no-reply@" + ServerConfigurationService.getServerName() + ">";
+	}
+
+	/**
+	 * Format the to site email address.
+	 * 
+	 * @param event
+	 *        The event that matched criteria to cause the notification.
+	 * @return the email address attribution for the site.
+	 */
+	protected String getToSite(Event event)
+	{
+		Reference ref = EntityManager.newReference(event.getResource());
+
+		// use either the configured site, or if not configured, the site (context) of the resource
+		String siteId = (getSite() != null) ? getSite() : ref.getContext();
+
+		// get a site title
+		String title = siteId;
+		String email = null;
+		try
+		{
+			Site site = SiteService.getSite(siteId);
+			title = site.getTitle();
+
+			// check that the channel exists
+			String channel = "/mailarchive/channel/" + siteId + "/main";
+			MailArchiveService.getChannel(channel);
+
+			// find the alias for this site's mail channel
+			List all = AliasService.getAliases(channel);
+			if (!all.isEmpty()) email = ((Alias) all.get(0)).getId();
+		}
+		catch (Exception ignore)
+		{
+		}
+
+		// if for any reason we did not find an email, setup for the no-reply for email
+		if (email == null) email = "no-reply";
+
+		String rv = "\"" + title + "\" <" + email + "@" + ServerConfigurationService.getServerName() + ">";
+
+		return rv;
 	}
 }

@@ -40,24 +40,26 @@ import org.sakaiproject.event.cover.NotificationService;
 import org.sakaiproject.site.api.Site;
 import org.sakaiproject.site.cover.SiteService;
 import org.sakaiproject.time.cover.TimeService;
+import org.sakaiproject.tool.cover.SessionManager;
 import org.sakaiproject.user.api.Preferences;
 import org.sakaiproject.user.api.User;
+import org.sakaiproject.user.api.UserNotDefinedException;
 import org.sakaiproject.user.cover.PreferencesService;
+import org.sakaiproject.user.cover.UserDirectoryService;
 import org.w3c.dom.Element;
 
 /**
  * <p>
- * EmailNotification is the notification helper that handles the act of message (email) based notify, site related, with user preferences.
+ * EmailNotification is the notification action that handles the act of message (email) based notify, site related, with user preferences.
  * </p>
  * <p>
- * Although these are not abstract, the following can be specified to extend the class:
+ * The following should be specified to extend the class:
  * <ul>
- * <li>getMessage()</li>
- * <li>getHeaders()</li>
- * <li>getTag()</li>
- * <li>isBodyHTML()</li>
- * <li>getRecipients()</li>
- * <li>headerToRecipient()</li>
+ * <li>getRecipients() - get a collection of Users to send the notification to</li>
+ * <li>getHeaders() - form the complete message headers (like from: to: reply-to: date: subject: etc). from: and to: are for display only</li>
+ * <li>getMessage() - form the complete message body (minus headers)</li>
+ * <li>getTag() - the part of the body at the end that identifies the list</li>
+ * <li>isBodyHTML() - say if your body is html or not (not would be plain text)</li>
  * </ul>
  * </p>
  * <p>
@@ -159,30 +161,20 @@ public class EmailNotification implements NotificationAction
 		// we may be done
 		if ((immediate.size() == 0) && (digest.size() == 0)) return;
 
-		// get the email elements
-		String message = getMessage(event);
+		// get the email elements - headers (including to: from: subject: date: and anything else we want in the message) and body
 		List headers = getHeaders(event);
+		String message = getMessage(event);
 
-		// for From:, use the From: in the headers, else use no-reply@server
-		String from = findHeaderValue("From", headers);
-		if (from == null)
-		{
-			from = "\"" + ServerConfigurationService.getString("ui.service", "Sakai") + "\"<no-reply@"
-					+ ServerConfigurationService.getServerName() + ">";
-		}
+		// from = "\"" + ServerConfigurationService.getString("ui.service", "Sakai") + "\"<no-reply@" + ServerConfigurationService.getServerName() + ">";
 
-		// message body details
+		// some info we will need to add the tag for immediate recipients
 		boolean isBodyHTML = isBodyHTML(event);
 		String newline = (isBodyHTML) ? "<br />\n" : "\n";
-
-		// header to the individual recipient?
-		boolean toRecipient = headerToRecipient();
 
 		// for the immediates
 		if (immediate.size() > 0)
 		{
-			// get a site title
-			// use either the configured site, or if not configured, the site (context) of the resource
+			// get a site title: use either the configured site, or if not configured, the site (context) of the resource
 			Reference ref = EntityManager.newReference(event.getResource());
 			Entity r = ref.getEntity();
 			String title = (getSite() != null) ? getSite() : ref.getContext();
@@ -195,57 +187,52 @@ public class EmailNotification implements NotificationAction
 			{
 			}
 
-			// tag the message
+			// add the tag to the end message
 			String messageForImmediates = message + getTag(newline, title);
 
-			// send to each immediate - one at a time
-			// NOTE: sending to them all at once caused problems - some SMTP servers have a to: limit which we exceeded,
-			// and if there's a bad email address in there it could cancel the entire mailing. -ggolden
-			for (Iterator ii = immediate.iterator(); ii.hasNext();)
-			{
-				User user = (User) ii.next();
-				String email = user.getEmail();
-				if ((email != null) && (email.length() > 0))
-				{
-					EmailService.send(from, email, findHeaderValue("Subject", headers), messageForImmediates, (toRecipient ? email
-							: null), null, headers);
-				}
-			}
+			// send it: from: from, to: immediates, body: messageForImmediates, headers: headers
+			EmailService.sendToUsers(immediate, headers, messageForImmediates);
 		}
 
 		// for the digesters
 		if (digest.size() > 0)
 		{
-			// modify the message to add missing parts (no tag - this is added at the end of the digest)
-			// date, subject, to, all may be in the additionalHeaders
-			String messageForDigest = "From: " + from + "\n";
-			String item = findHeader("Date", headers);
+			// TODO: \n or newLine? text or htlm? -ggolden
+
+			// modify the message to add header lines (we don't add a tag for each message, the digest adds a single one when sent)
+			StringBuffer messageForDigest = new StringBuffer();
+
+			String item = findHeader("From", headers);
+			if (item != null) messageForDigest.append(item);
+
+			item = findHeader("Date", headers);
 			if (item != null)
 			{
-				messageForDigest += item;
+				messageForDigest.append(item);
 			}
 			else
 			{
-				messageForDigest += "Date: " + TimeService.newTime().toStringLocalFullZ() + "\n";
+				messageForDigest.append("Date: " + TimeService.newTime().toStringLocalFullZ() + "\n");
 			}
 
 			item = findHeader("To", headers);
-			if (item != null) messageForDigest += item;
+			if (item != null) messageForDigest.append(item);
 
 			item = findHeader("Cc", headers);
-			if (item != null) messageForDigest += item;
+			if (item != null) messageForDigest.append(item);
 
 			item = findHeader("Subject", headers);
-			if (item != null) messageForDigest += item;
+			if (item != null) messageForDigest.append(item);
 
-			messageForDigest += "\n" + message;
+			// and the body
+			messageForDigest.append("\n");
+			messageForDigest.append(message);
 
+			// digest the message to each user
 			for (Iterator iDigests = digest.iterator(); iDigests.hasNext();)
 			{
 				User user = (User) iDigests.next();
-
-				// digest the message
-				DigestService.digest(user.getId(), findHeaderValue("Subject", headers), messageForDigest);
+				DigestService.digest(user.getId(), findHeaderValue("Subject", headers), messageForDigest.toString());
 			}
 		}
 	}
@@ -310,16 +297,6 @@ public class EmailNotification implements NotificationAction
 	protected List getRecipients(Event event)
 	{
 		return new Vector();
-	}
-
-	/**
-	 * Should each header to read to the individual, or will it be to some single other value?
-	 * 
-	 * @return true to get individual header to: settings, false to not.
-	 */
-	protected boolean headerToRecipient()
-	{
-		return true;
 	}
 
 	/**
@@ -550,5 +527,70 @@ public class EmailNotification implements NotificationAction
 
 		String value = line.substring(header.length() + 2);
 		return value;
+	}
+
+	/**
+	 * Format a From: respecting the notification service replyable configuration
+	 * 
+	 * @param event
+	 * @return
+	 */
+	protected String getFrom(Event event)
+	{
+		if (NotificationService.isNotificationFromReplyable())
+		{
+			// from user display name <email>
+			return "From: " + getFromEventUser(event);
+		}
+		else
+		{
+			// from the general service, no reply
+			return "From: " + getFromService();
+		}
+	}
+
+	/**
+	 * Format a from address from the service, no reply.
+	 * 
+	 * @return a from address from the service, no reply.
+	 */
+	protected String getFromService()
+	{
+		return "\"" + ServerConfigurationService.getString("ui.service", "Sakai") + "\"<no-reply@"
+				+ ServerConfigurationService.getServerName() + ">";
+	}
+
+	/**
+	 * Format the from user email address based on the user generating the event (current user).
+	 * 
+	 * @param event
+	 *        The event that matched criteria to cause the notification.
+	 * @return the from user email address based on the user generating the event.
+	 */
+	protected String getFromEventUser(Event event)
+	{
+		String userDisplay = null;
+		String userEmail = null;
+
+		String userId = SessionManager.getCurrentSessionUserId();
+		if (userId != null)
+		{
+			try
+			{
+				User u = UserDirectoryService.getUser(userId);
+				userDisplay = u.getDisplayName();
+				userEmail = u.getEmail();
+				if ((userEmail != null) && (userEmail.trim().length()) == 0) userEmail = null;
+			}
+			catch (UserNotDefinedException e)
+			{
+			}
+		}
+
+		// some fallback positions
+		if (userEmail == null) userEmail = "no-reply@" + ServerConfigurationService.getServerName();
+		if (userDisplay == null) userDisplay = ServerConfigurationService.getString("ui.service", "Sakai");
+
+		return "\"" + userDisplay + "\" <" + userEmail + ">";
 	}
 }

@@ -167,6 +167,38 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 	protected abstract IdManager idManager();
 
 	/**********************************************************************************************************************************************************************************************************************************************************
+	 * Configuration
+	 *********************************************************************************************************************************************************************************************************************************************************/
+
+	/** Configuration: make the email notifications To: reply-able. */
+	protected boolean m_emailsToReplyable = false;
+
+	/**
+	 * Configuration: set reply-able status for email notifications in the To:.
+	 * 
+	 * @param value
+	 *        The setting
+	 */
+	public void setEmailToReplyable(boolean value)
+	{
+		m_emailsToReplyable = value;
+	}
+
+	/** Configuration: make the email notifications From: reply-able. */
+	protected boolean m_emailsFromReplyable = false;
+
+	/**
+	 * Configuration: set reply-able status for email notifications in the From:.
+	 * 
+	 * @param value
+	 *        The setting
+	 */
+	public void setEmailFromReplyable(boolean value)
+	{
+		m_emailsFromReplyable = value;
+	}
+
+	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
 	 *********************************************************************************************************************************************************************************************************************************************************/
 
@@ -522,6 +554,22 @@ public abstract class BaseNotificationService implements NotificationService, Ob
 		}
 
 		return null;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public boolean isNotificationToReplyable()
+	{
+		return this.m_emailsToReplyable;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public boolean isNotificationFromReplyable()
+	{
+		return this.m_emailsFromReplyable;
 	}
 
 	/**********************************************************************************************************************************************************************************************************************************************************

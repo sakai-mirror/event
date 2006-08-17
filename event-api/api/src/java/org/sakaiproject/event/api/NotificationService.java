@@ -161,4 +161,18 @@ public interface NotificationService
 	 * @return A notification object matching the criteria, or null if none found.
 	 */
 	Notification findNotification(String function, String filter);
+
+	/**
+	 * Check if an email notification should be reply-able in the To: field
+	 * 
+	 * @return true if email notifications should be reply-able in the To: field, false if not.
+	 */
+	boolean isNotificationToReplyable();
+
+	/**
+	 * Check if an email notification should be reply-able in the From: field
+	 * 
+	 * @return true if email notifications should be reply-able in the From: field, false if not.
+	 */
+	boolean isNotificationFromReplyable();
 }
