@@ -353,9 +353,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 	/**
 	 * @inheritDoc
 	 */
-	public List getSessions(String criteria, Object[] values)
+	public List getSessions(String joinTable, String joinAlias, String joinColumn, String joinCriteria, Object[] values)
 	{
-		List rv = m_storage.getSessions(criteria, values);
+		List rv = m_storage.getSessions(joinTable, joinAlias, joinColumn, joinCriteria, values);
 
 		return rv;
 	}
@@ -514,15 +514,21 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		List getSessions(List ids);
 
 		/**
-		 * Access a List of usage sessions by *arbitrary criteria*.
+		 * Access a List of usage sessions by *arbitrary criteria* for te session ids.
 		 * 
-		 * @param criteria
-		 *        A string with meaning known to the particular implementation of the API running.
+		 * @param joinTable
+		 *        the table name to (inner) join to
+		 * @param joinAlias
+		 *        the alias used in the criteria string for the joinTable
+		 * @param joinColumn
+		 *        the column name of the joinTable that is to match the session id in the join ON clause
+		 * @param joinCriteria
+		 *        the criteria of the select (after the where)
 		 * @param fields
 		 *        Optional values to go with the criteria in an implementation specific way.
 		 * @return The List (UsageSession) of UsageSession object for these ids.
 		 */
-		List getSessions(String criteria, Object[] values);
+		List getSessions(String joinTable, String joinAlias, String joinColumn, String joinCriteria, Object[] values);
 
 		/**
 		 * This session is now closed.
@@ -1189,21 +1195,34 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		}
 
 		/**
-		 * Access a List of usage sessions by *arbitrary criteria*.
+		 * Access a List of usage sessions by *arbitrary criteria* for te session ids.
 		 * 
-		 * @param criteria
-		 *        A string with meaning known to the particular implementation of the API running.
+		 * @param joinTable
+		 *        the table name to (inner) join to
+		 * @param joinAlias
+		 *        the alias used in the criteria string for the joinTable
+		 * @param joinColumn
+		 *        the column name of the joinTable that is to match the session id in the join ON clause
+		 * @param joinCriteria
+		 *        the criteria of the select (after the where)
 		 * @param fields
 		 *        Optional values to go with the criteria in an implementation specific way.
 		 * @return The List (UsageSession) of UsageSession object for these ids.
 		 */
-		public List getSessions(String criteria, Object[] values)
+		public List getSessions(String joinTable, String joinAlias, String joinColumn, String joinCriteria, Object[] values)
 		{
 			UsageSession rv = null;
 
+			// use an alias different from the alias given
+			String alias = joinAlias + "X";
+
 			// use criteria as the where clause
-			String statement = "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END"
-					+ " from SAKAI_SESSION where SESSION_ID IN ( " + criteria + " )";
+			String statement = "select " + alias + ".SESSION_ID," + alias + ".SESSION_SERVER," + alias
+					+ ".SESSION_USER," + alias + ".SESSION_IP," + alias + ".SESSION_USER_AGENT," + alias + ".SESSION_START," + alias + ".SESSION_END"
+					+ " from SAKAI_SESSION " + alias
+					+ " inner join " + joinTable + " " + joinAlias
+					+ " ON " + alias + ".SESSION_ID = " + joinAlias + "." + joinColumn
+					+ " where " + joinCriteria;
 
 			List sessions = sqlService().dbRead(statement, values, new SqlReader()
 			{

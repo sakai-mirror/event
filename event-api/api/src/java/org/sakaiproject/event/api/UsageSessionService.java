@@ -116,13 +116,19 @@ public interface UsageSessionService
 	/**
 	 * Access a List of usage sessions by *arbitrary criteria* for te session ids.
 	 * 
-	 * @param criteria
-	 *        A string with meaning known to the particular implementation of the API running.
+	 * @param joinTable
+	 *        the table name to (inner) join to
+	 * @param joinAlias
+	 *        the alias used in the criteria string for the joinTable
+	 * @param joinColumn
+	 *        the column name of the joinTable that is to match the session id in the join ON clause
+	 * @param joinCriteria
+	 *        the criteria of the select (after the where)
 	 * @param fields
 	 *        Optional values to go with the criteria in an implementation specific way.
 	 * @return The List (UsageSession) of UsageSession object for these ids.
 	 */
-	List getSessions(String criteria, Object[] values);
+	List getSessions(String joinTable, String joinAlias, String joinColumn, String joinCriteria, Object[] values);
 
 	/**
 	 * Access the time (seconds) we will wait for any user generated request from a session before we consider the session inactive.
