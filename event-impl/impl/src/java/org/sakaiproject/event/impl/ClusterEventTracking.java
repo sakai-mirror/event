@@ -260,7 +260,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	protected void writeEvent(Event event, Connection conn)
 	{
 		// get the SQL statement
-		String statement = insertStatement();
+		String statement = ClusterEventSql.returnInsertSakaiEvent(sqlService().getVendor());
 
 		// collect the fields
 		Object fields[] = new Object[5];
@@ -297,7 +297,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 			// Note: investigate batch writing via the jdbc driver: make sure we can still use prepared statements (check out host arrays, too) -ggolden
 
 			// common preparation for each insert
-			String statement = insertStatement();
+			String statement = ClusterEventSql.returnInsertSakaiEvent(sqlService().getVendor());
 			Object fields[] = new Object[5];
 
 			// write all events
@@ -353,72 +353,6 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	}
 
 	/**
-	 * Form the proper event insert statement for the database technology.
-	 * 
-	 * @return The SQL insert statement for writing an event.
-	 */
-	protected String insertStatement()
-	{
-		String statement;
-		if ("oracle".equals(sqlService().getVendor()))
-		{
-			statement = "insert into SAKAI_EVENT" + " (EVENT_ID,EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)" + " values ("
-			// form the id based on the sequence
-					+ " SAKAI_EVENT_SEQ.NEXTVAL,"
-					// date
-					+ " ?,"
-					// event
-					+ " ?,"
-					// reference
-					+ " ?,"
-					// session id
-					+ " ?,"
-					// code
-					+ " ?"
-
-					+ " )";
-		}
-		else if ("mysql".equals(sqlService().getVendor()))
-		{
-			// leave out the EVENT_ID as it will be automatically generated on the server
-			statement = "insert into SAKAI_EVENT" + " (EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)" + " values ("
-			// date
-					+ " ?,"
-					// event
-					+ " ?,"
-					// reference
-					+ " ?,"
-					// session id
-					+ " ?,"
-					// code
-					+ " ?"
-
-					+ " )";
-		}
-		else
-		// if ("hsqldb".equals(sqlService().getVendor()))
-		{
-			statement = "insert into SAKAI_EVENT" + " (EVENT_ID,EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)" + " values ("
-			// form the id based on the sequence
-					+ " NEXT VALUE FOR SAKAI_EVENT_SEQ,"
-					// date
-					+ " ?,"
-					// event
-					+ " ?,"
-					// reference
-					+ " ?,"
-					// session id
-					+ " ?,"
-					// code
-					+ " ?"
-
-					+ " )";
-		}
-
-		return statement;
-	}
-
-	/**
 	 * Bind the event values into an array of fields for inserting.
 	 * 
 	 * @param event
@@ -457,7 +391,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	protected void start()
 	{
 		m_threadStop = false;
-
+	
 		m_thread = new Thread(this, getClass().getName());
 		m_thread.start();
 	}
@@ -468,13 +402,13 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	protected void stop()
 	{
 		if (m_thread == null) return;
-
+	
 		// signal the thread to stop
 		m_threadStop = true;
-
+	
 		// wake up the thread
 		m_thread.interrupt();
-
+	
 		m_thread = null;
 	}
 
@@ -485,16 +419,16 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	{
 		// since we might be running while the component manager is still being created and populated, such as at server startup, wait here for a complete component manager
 		ComponentManager.waitTillConfigured();
-
+	
 		// find the latest event in the db
 		initLastEvent();
-
+	
 		// loop till told to stop
 		while ((!m_threadStop) && (!Thread.currentThread().isInterrupted()))
 		{
 			final String serverInstance = serverConfigurationService().getServerIdInstance();
 			final String serverId = serverConfigurationService().getServerId();
-
+	
 			try
 			{
 				// write any batched events
@@ -509,34 +443,20 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 							m_eventQueue.clear();
 						}
 					}
-
+	
 					if (myEvents.size() > 0)
 					{
 						if (M_log.isDebugEnabled()) M_log.debug("writing " + myEvents.size() + " batched events");
 						writeBatchEvents(myEvents);
 					}
 				}
-
+	
 				if (M_log.isDebugEnabled()) M_log.debug("checking for events > " + m_lastEventSeq);
 				// check the db for new events
 				// Note: the events may not all have sessions, so to get them we need an outer join.
 				// TODO: switch to a "view" read once that's established, for now, a join -ggolden
-				String statement = null;
-				if ("oracle".equals(sqlService().getVendor()))
-				{
-					// this now has Oracle specific hint to improve performance with large tables -ggolden
-					statement = "select /*+ FIRST_ROWS */ EVENT_ID,EVENT_DATE,EVENT,REF,SAKAI_EVENT.SESSION_ID,EVENT_CODE,SESSION_SERVER"
-							+ " from SAKAI_EVENT,SAKAI_SESSION"
-							+ " where (SAKAI_EVENT.SESSION_ID = SAKAI_SESSION.SESSION_ID(+)) and (EVENT_ID > ?)";
-				}
-				else
-				// non-Oracle, without Oracle hint
-				{
-					statement = "select EVENT_ID,EVENT_DATE,EVENT,REF,SAKAI_EVENT.SESSION_ID,EVENT_CODE,SESSION_SERVER"
-							+ " from SAKAI_EVENT,SAKAI_SESSION"
-							+ " where (SAKAI_EVENT.SESSION_ID = SAKAI_SESSION.SESSION_ID) and (EVENT_ID > ?)";
-				}
-
+				String statement = ClusterEventSql.returnSelectEvent(sqlService().getVendor());
+	
 				// we might want a left join, which would get us records from non-sessions, which the above mysql code does NOT give -ggolden
 				//				select e.EVENT_ID,e.EVENT_DATE,e.EVENT,e.REF,e.SESSION_ID,e.EVENT_CODE,s.SESSION_SERVER
 				//				from SAKAI_EVENT e
@@ -546,7 +466,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 				// send in the last seq number parameter
 				Object[] fields = new Object[1];
 				fields[0] = new Long(m_lastEventSeq);
-
+	
 				List events = sqlService().dbRead(statement, fields, new SqlReader()
 				{
 					public Object readSqlResultRecord(ResultSet result)
@@ -561,38 +481,38 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 							String session = result.getString(5);
 							String code = result.getString(6);
 							String eventSessionServerId = result.getString(7);
-
+	
 							// for each one (really, for the last one), update the last event seen seq number
 							if (id > m_lastEventSeq)
 							{
 								m_lastEventSeq = id;
 							}
-
+	
 							boolean nonSessionEvent = session.startsWith("~");
 							String userId = null;
 							boolean skipIt = false;
-
+	
 							if (nonSessionEvent)
 							{
 								String[] parts = StringUtil.split(session, "~");
 								userId = parts[2];
-
+	
 								// we skip this event if it came from our server
 								skipIt = serverId.equals(parts[1]);
 							}
-
+	
 							// for session events, if the event is from this server instance,
 							// we have already processed it and can skip it here.
 							else
 							{
 								skipIt = serverInstance.equals(eventSessionServerId);
 							}
-
+	
 							if (skipIt)
 							{
 								return null;
 							}
-
+	
 							// Note: events from outside the server don't need notification info, since notification is processed only on internal events -ggolden
 							BaseEvent event = new BaseEvent(id, function, ref, code.equals("m"), NotificationService.NOTI_NONE);
 							if (nonSessionEvent)
@@ -603,7 +523,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 							{
 								event.setSessionId(session);
 							}
-
+	
 							return event;
 						}
 						catch (SQLException ignore)
@@ -612,7 +532,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 						}
 					}
 				});
-
+	
 				// for each new event found, notify observers
 				for (int i = 0; i < events.size(); i++)
 				{
@@ -624,7 +544,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 			{
 				M_log.warn("run: will continue: ", e);
 			}
-
+	
 			// take a small nap
 			try
 			{
@@ -641,8 +561,8 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	 */
 	protected void initLastEvent()
 	{
-		String statement = "select MAX(EVENT_ID) from SAKAI_EVENT";
-
+		String statement = ClusterEventSql.returnSelectMaxEventId();
+	
 		sqlService().dbRead(statement, null, new SqlReader()
 		{
 			public Object readSqlResultRecord(ResultSet result)
@@ -658,7 +578,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 				return null;
 			}
 		});
-
+	
 		if (M_log.isDebugEnabled()) M_log.debug(this + " Starting (after) Event #: " + m_lastEventSeq);
 	}
 }

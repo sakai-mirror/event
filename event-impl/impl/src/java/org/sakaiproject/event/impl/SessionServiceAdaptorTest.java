@@ -21,6 +21,8 @@
 
 package org.sakaiproject.event.impl;
 
+import java.util.List;
+
 import org.sakaiproject.authz.api.AuthzGroupService;
 import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.db.api.SqlService;
@@ -108,6 +110,12 @@ public class SessionServiceAdaptorTest extends UsageSessionServiceAdaptor
 	 */
 	protected UserDirectoryService userDirectoryService()
 	{
+		return null;
+	}
+
+	
+	public List getSessions(String criteria, Object[] values) {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }

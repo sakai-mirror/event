@@ -441,19 +441,6 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 	}
 
 	/**
-	 * @inheritDoc
-	 */
-	public void logout()
-	{
-		userDirectoryService().destroyAuthentication();
-
-		// invalidate the sakai session, which makes it unavailable, unbinds all the bound objects,
-		// including the session, which will close and generate the logout event
-		Session sakaiSession = sessionManager().getCurrentSession();
-		sakaiSession.invalidate();
-	}
-
-	/**
 	 * Generate the logout event.
 	 */
 	protected void logoutEvent(UsageSession session)
@@ -469,6 +456,20 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			eventTrackingService().post(eventTrackingService().newEvent(EVENT_LOGOUT, null, true), session);
 		}
 	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public void logout()
+	{
+		userDirectoryService().destroyAuthentication();
+
+		// invalidate the sakai session, which makes it unavailable, unbinds all the bound objects,
+		// including the session, which will close and generate the logout event
+		Session sakaiSession = sessionManager().getCurrentSession();
+		sakaiSession.invalidate();
+	}
+
 
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Storage
@@ -1101,7 +1102,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		public boolean addSession(UsageSession session)
 		{
 			// and store it in the db
-			String statement = "insert into SAKAI_SESSION (SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END) values (?, ?, ?, ?, ?, ?, ?)";
+			String statement = EventSessionSql.returnInsertSession();
 
 			// collect the fields
 			Object fields[] = new Object[7];
@@ -1137,7 +1138,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			UsageSession rv = null;
 
 			// check the db
-			String statement = "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END from SAKAI_SESSION where SESSION_ID = ?";
+			String statement = EventSessionSql.returnSelectSession();
 
 			// send in the last seq number parameter
 			Object[] fields = new Object[1];
@@ -1213,16 +1214,14 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		{
 			UsageSession rv = null;
 
+			// TODO: modify SQL	
+			
 			// use an alias different from the alias given
 			String alias = joinAlias + "X";
 
 			// use criteria as the where clause
-			String statement = "select " + alias + ".SESSION_ID," + alias + ".SESSION_SERVER," + alias
-					+ ".SESSION_USER," + alias + ".SESSION_IP," + alias + ".SESSION_USER_AGENT," + alias + ".SESSION_START," + alias + ".SESSION_END"
-					+ " from SAKAI_SESSION " + alias
-					+ " inner join " + joinTable + " " + joinAlias
-					+ " ON " + alias + ".SESSION_ID = " + joinAlias + "." + joinColumn
-					+ " where " + joinCriteria;
+
+			String statement = EventSessionSql.returnGetSessionJoin(joinTable, joinAlias, joinColumn, joinCriteria, alias);
 
 			List sessions = sqlService().dbRead(statement, values, new SqlReader()
 			{
@@ -1261,7 +1260,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		public void closeSession(UsageSession session)
 		{
 			// close the session on the db
-			String statement = "update SAKAI_SESSION set SESSION_END = ? where SESSION_ID = ?";
+			String statement = EventSessionSql.returnUpdateSessionEnd();
 
 			// collect the fields
 			Object fields[] = new Object[2];
@@ -1287,8 +1286,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			UsageSession rv = null;
 
 			// check the db
-			String statement = "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END"
-					+ " from SAKAI_SESSION where SESSION_START = SESSION_END ORDER BY SESSION_SERVER ASC, SESSION_START ASC";
+			String statement = EventSessionSql.returnSelectOpenSessions();
 
 			List sessions = sqlService().dbRead(statement, null, new SqlReader()
 			{
