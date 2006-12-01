@@ -58,13 +58,17 @@ class ClusterEventSql {
 
 		return statement;
 	}
+	
+	/* Methods above here determine which dialect specific method to call.
+	 * The following methods return specific sql.
+	 */ 
 
 	static protected String returnSelectMaxEventId() {
 		String statement = "select MAX(EVENT_ID) from SAKAI_EVENT";
 		return statement;
 	}
 
-	static private String returnInsertSakaiEventOracle() {
+	static protected String returnInsertSakaiEventOracle() {
 		String statement;
 		statement = "insert into SAKAI_EVENT"
 				+ " (EVENT_ID,EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)"
@@ -86,7 +90,7 @@ class ClusterEventSql {
 		return statement;
 	}
 
-	static private String returnInsertSakaiEventMysql() {
+	static protected String returnInsertSakaiEventMysql() {
 		String statement;
 		// leave out the EVENT_ID as it will be automatically generated on the
 		// server
@@ -107,7 +111,7 @@ class ClusterEventSql {
 		return statement;
 	}
 
-	static private String returnInsertSakaiEventGeneric() {
+	static protected String returnInsertSakaiEventGeneric() {
 		String statement;
 		statement = "insert into SAKAI_EVENT"
 				+ " (EVENT_ID,EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)"
@@ -129,7 +133,7 @@ class ClusterEventSql {
 		return statement;
 	}
 
-	static private String returnSelectEventOracle() {
+	static protected String returnSelectEventOracle() {
 		String statement;
 		// this now has Oracle specific hint to improve performance with large
 		// tables -ggolden
@@ -139,7 +143,7 @@ class ClusterEventSql {
 		return statement;
 	}
 
-	static private String returnSelectEventGeneric() {
+	static protected String returnSelectEventGeneric() {
 		String statement;
 		statement = "select EVENT_ID,EVENT_DATE,EVENT,REF,SAKAI_EVENT.SESSION_ID,EVENT_CODE,SESSION_SERVER"
 				+ " from SAKAI_EVENT,SAKAI_SESSION"
