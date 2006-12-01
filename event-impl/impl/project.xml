@@ -127,7 +127,12 @@
 			</resource>
 
 		</resources>
-
+		<unitTestSourceDirectory>src/test</unitTestSourceDirectory>
+		<unitTest>
+			<includes>
+ 				<include>**/*Test.java</include>
+			</includes>
+		</unitTest>
 	</build>
 
 </project>
