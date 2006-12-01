@@ -19,5 +19,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/util-util"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/test-harness"/>
 	<classpathentry kind="var" path="MAVEN_REPO/junit/jars/junit-3.8.1.jar"/>
+	<classpathentry kind="src" path="impl/src/test"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
