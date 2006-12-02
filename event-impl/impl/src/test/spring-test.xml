@@ -27,32 +27,3 @@
 	<bean id="eventSqlHsql" class="org.sakaiproject.event.impl.ClusterEventSqlHsql" />
 	<bean id="eventSqlMySql" class="org.sakaiproject.event.impl.ClusterEventSqlMySql" />
 </beans>
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
-
-<beans>
-    <bean id="dbPropertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-        <property name="locations">
-            <list>
-                <value>classpath:/db-test.properties</value>
-            </list>
-        </property>
-    </bean>
-
-	<bean id="hsqlDataSource" class="org.apache.commons.dbcp.BasicDataSource">
-		<property name="driverClassName"><value>${hsql_connection.driver_class}</value></property>
-		<property name="url"><value>${hsql_connection.url}</value></property>
-		<property name="username"><value>${hsql_connection.username}</value></property>
-		<property name="password"><value>${hsql_connection.password}</value></property>
-	</bean>
-	
-	<bean id="mySqlDataSource" class="org.apache.commons.dbcp.BasicDataSource">
-		<property name="driverClassName"><value>${mysql_connection.driver_class}</value></property>
-		<property name="url"><value>${mysql_connection.url}</value></property>
-		<property name="username"><value>${mysql_connection.username}</value></property>
-		<property name="password"><value>${mysql_connection.password}</value></property>
-	</bean>
-
-	<bean id="eventSqlHsql" class="org.sakaiproject.event.impl.ClusterEventSqlHsql" />
-	<bean id="eventSqlMySql" class="org.sakaiproject.event.impl.ClusterEventSqlMySql" />
-</beans>
