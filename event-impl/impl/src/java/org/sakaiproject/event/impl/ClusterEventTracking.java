@@ -35,6 +35,7 @@ import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.component.cover.ComponentManager;
 import org.sakaiproject.db.api.SqlReader;
 import org.sakaiproject.db.api.SqlService;
+import org.sakaiproject.event.api.ClusterEventSql;
 import org.sakaiproject.event.api.Event;
 import org.sakaiproject.event.api.NotificationService;
 import org.sakaiproject.time.api.Time;
@@ -66,6 +67,9 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 
 	/** Queue of events to write if we are batching. */
 	protected Collection m_eventQueue = null;
+	
+	/** The generator for our SQL */
+	protected ClusterEventSql clusterSql = null;
 
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Dependencies
@@ -175,6 +179,16 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 				sqlService().ddl(this.getClass().getClassLoader(), "sakai_event");
 			}
 
+			// Ensure we're using the right SQL Generator
+			String vendor = sqlService().getVendor();
+			if("oracle".equals(vendor)) {
+				clusterSql = new ClusterEventSqlOracle();
+			} else if("mysql".equals(vendor)) {
+				clusterSql = new ClusterEventSqlMySql();
+			} else {
+				clusterSql = new ClusterEventSqlHsql();
+			}
+			
 			super.init();
 
 			if (m_batchWrite)
@@ -260,7 +274,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	protected void writeEvent(Event event, Connection conn)
 	{
 		// get the SQL statement
-		String statement = ClusterEventSql.returnInsertSakaiEvent(sqlService().getVendor());
+		String statement = clusterSql.returnInsertSakaiEvent();
 
 		// collect the fields
 		Object fields[] = new Object[5];
@@ -297,7 +311,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 			// Note: investigate batch writing via the jdbc driver: make sure we can still use prepared statements (check out host arrays, too) -ggolden
 
 			// common preparation for each insert
-			String statement = ClusterEventSql.returnInsertSakaiEvent(sqlService().getVendor());
+			String statement = clusterSql.returnInsertSakaiEvent();
 			Object fields[] = new Object[5];
 
 			// write all events
@@ -455,7 +469,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 				// check the db for new events
 				// Note: the events may not all have sessions, so to get them we need an outer join.
 				// TODO: switch to a "view" read once that's established, for now, a join -ggolden
-				String statement = ClusterEventSql.returnSelectEvent(sqlService().getVendor());
+				String statement = clusterSql.returnSelectEvent();
 	
 				// we might want a left join, which would get us records from non-sessions, which the above mysql code does NOT give -ggolden
 				//				select e.EVENT_ID,e.EVENT_DATE,e.EVENT,e.REF,e.SESSION_ID,e.EVENT_CODE,s.SESSION_SERVER
@@ -561,7 +575,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	 */
 	protected void initLastEvent()
 	{
-		String statement = ClusterEventSql.returnSelectMaxEventId();
+		String statement = clusterSql.returnSelectMaxEventId();
 	
 		sqlService().dbRead(statement, null, new SqlReader()
 		{
