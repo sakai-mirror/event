@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<dataset>
+  <MANUFACTURER id="1" NAME="IBM"/>
+  <MANUFACTURER id="2" NAME="DELL"/>
+</dataset>

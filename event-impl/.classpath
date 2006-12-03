@@ -25,5 +25,6 @@
 	<classpathentry kind="var" path="MAVEN_REPO/commons-dbcp/jars/commons-dbcp-1.2.1.jar"/>
 	<classpathentry kind="var" path="MAVEN_REPO/commons-pool/jars/commons-pool-1.3.jar"/>
 	<classpathentry kind="var" path="MAVEN_REPO/hsqldb/jars/hsqldb-1.8.0.5.jar"/>
+	<classpathentry kind="var" path="MAVEN_REPO/dbunit/jars/dbunit-2.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
