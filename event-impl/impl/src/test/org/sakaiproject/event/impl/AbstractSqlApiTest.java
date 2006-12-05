@@ -55,7 +55,7 @@ import org.dbunit.operation.DatabaseOperation;
  * that be avoided?
  ************************************************/
 
-public abstract class SqlApiTest extends DatabaseTestCase {
+public abstract class AbstractSqlApiTest extends DatabaseTestCase {
 	
 	/****************
 	 * These values are filled in by instances of this class that deal with 
@@ -85,7 +85,7 @@ public abstract class SqlApiTest extends DatabaseTestCase {
 	// The password to use.
 	protected String pw = null;
 	
-	public SqlApiTest(String name) {
+	public AbstractSqlApiTest(String name) {
 		super(name);
 	}
 	

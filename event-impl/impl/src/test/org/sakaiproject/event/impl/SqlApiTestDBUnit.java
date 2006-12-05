@@ -42,7 +42,7 @@ import java.sql.SQLException;
  * http://www.realsolve.co.uk/site/tech/dbunit-quickstart.php
  ******************************************************************************/
 
-public class SqlApiTestDBUnit extends SqlApiTest {
+public class SqlApiTestDBUnit extends AbstractSqlApiTest {
 
 	// Name of test table.
 	public static final String TABLE_NAME = "MANUFACTURER";

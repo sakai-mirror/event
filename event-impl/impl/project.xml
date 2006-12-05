@@ -235,6 +235,9 @@
 			<includes>
  				<include>**/*Test.java</include>
 			</includes>
+			<excludes>
+ 				<exclude>**/Abstract*</exclude>
+			</excludes>
 		</unitTest>
 	</build>
 

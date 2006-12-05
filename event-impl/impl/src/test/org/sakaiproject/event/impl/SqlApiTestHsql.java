@@ -28,7 +28,7 @@ import java.sql.SQLException;
 
 
 
-public class SqlApiTestHsql extends SqlApiTest {
+public class SqlApiTestHsql extends AbstractSqlApiTest {
 	
 	public SqlApiTestHsql(String name) throws SQLException, Exception {
 		

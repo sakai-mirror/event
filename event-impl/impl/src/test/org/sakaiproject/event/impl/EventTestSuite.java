@@ -80,13 +80,17 @@ public class EventTestSuite extends AbstractDependencyInjectionSpringContextTest
 			// Find the last event
 			Long lastEventId = jdbc.queryForLong(clusterEventSql.returnSelectMaxEventId());
 			
+			// If this value wasn't found, JdbcTemplate will return zero.  Ensure we didn't get a zero result.
+			Assert.assertFalse(new Long(0).equals(lastEventId));
+			
 			// Ensure that selecting the last event returns the right event object
 			String selectSql = clusterEventSql.returnSelectEvent();
 			
+			Map resultMap = jdbc.queryForMap(selectSql, new Object[] {lastEventId});
+
 			// FIXME: We can't do this query without a valid session ID.  There is a hidden
 			// cross-service dependency here.
-			
-			//	Map resultMap = jdbc.queryForMap(selectSql, new Object[] {lastEventId});
+
 			//	Assert.assertEquals("test_event", resultMap.get("EVENT"));
 		}
 	}
