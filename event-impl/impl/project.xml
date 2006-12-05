@@ -233,19 +233,25 @@
 		<unitTestSourceDirectory>src/test</unitTestSourceDirectory>
 		<unitTest>
 			<includes>
- 				<include>**/*Test.java</include>
+ 				<include>**/*Test*.java</include>
 			</includes>
 			<excludes>
- 				<exclude>**/Abstract*</exclude>
+ 				<exclude>**/*Abstract*</exclude>
 			</excludes>
 
 			<resources>
 				<resource>
 					<directory>${basedir}/src/test</directory>
 					<includes>
-						<include>log4j.properties</include>
-						<include>db-test.properties</include>
-						<include>spring-test.xml</include>
+						<include>*.properties</include>
+						<include>*.xml</include>
+						<include>*.sql</include>
+					</includes>
+				</resource>
+				<resource>
+					<directory>${basedir}/src/sql</directory>
+					<includes>
+						<include>**/*.sql</include>
 					</includes>
 				</resource>
 			</resources>

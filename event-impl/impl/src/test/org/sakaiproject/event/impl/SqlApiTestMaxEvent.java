@@ -49,7 +49,7 @@ import org.sakaiproject.event.api.ClusterEventSql;
  * http://www.realsolve.co.uk/site/tech/dbunit-quickstart.php
  ******************************************************************************/
 
-public class SqlApiTestMaxEvent extends SqlApiTest {
+public class SqlApiTestMaxEvent extends AbstractSqlApiTest {
 
 	// Name of test table.
 	public static final String TABLE_NAME = "MANUFACTURER";
@@ -62,8 +62,8 @@ public class SqlApiTestMaxEvent extends SqlApiTest {
 		super(name);
 
 
-		inputDataSet = "/Users/dlhaines/dev/sakai/refactor-sql/trunk/event/event-impl/impl/src/test/maxEventData.xml";
-		ddlFile = "/Users/dlhaines/dev/sakai/refactor-sql/trunk/event/event-impl/impl/src/sql/hsqldb/sakai_event.sql";
+		inputDataSet = "maxEventData.xml";
+		ddlFile = "hsqldb/sakai_event.sql";
 		pw = "";
 		user = "sa";
 
@@ -81,7 +81,7 @@ public class SqlApiTestMaxEvent extends SqlApiTest {
 
 		// If there is a ddlFile then run it.
 		if (ddlFile != null && ddlFile.length() > 0) {
-			executeDdlFile(new File(ddlFile), getConnection().getConnection());
+			executeDdlFile(getClass().getClassLoader().getResourceAsStream(ddlFile), getConnection().getConnection());
 			// Figure out how to avoid running the ddlFile more than once.
 		}
 	}
@@ -111,8 +111,8 @@ public class SqlApiTestMaxEvent extends SqlApiTest {
 	}
 	
 	public void testSelectMaxEventId() throws Exception {
-		String mEDRA = "/Users/dlhaines/dev/sakai/refactor-sql/trunk/event/event-impl/impl/src/test/maxEventDataResultA.xml";
-		FlatXmlDataSet fxdf = fileNameToFlatXmlDataSet(mEDRA);
+		String mEDRA = "maxEventDataResultA.xml";
+		FlatXmlDataSet fxdf = new FlatXmlDataSet(getClass().getClassLoader().getResource(mEDRA));
 		ClusterEventSql ces = new ClusterEventSqlHsql();
 		String maxEventIdSql = ces.returnSelectMaxEventId();
 		

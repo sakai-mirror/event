@@ -25,6 +25,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -91,8 +93,8 @@ public abstract class AbstractSqlApiTest extends DatabaseTestCase {
 	
 	// Supply a default dataset to use.
 	protected IDataSet getDataSet() throws Exception {
-		FileInputStream fis = new FileInputStream(inputDataSet);
-		FlatXmlDataSet fxds = new FlatXmlDataSet(fis);
+		InputStream is = getClass().getClassLoader().getResourceAsStream(inputDataSet);
+		FlatXmlDataSet fxds = new FlatXmlDataSet(is);
 		loadedDataSet = fxds;
 		return loadedDataSet;
 	}
@@ -129,10 +131,9 @@ public abstract class AbstractSqlApiTest extends DatabaseTestCase {
 	// http://dbunit.sourceforge.net/xref-test/org/dbunit/HypersonicEnvironment.html
 	
 	// dbUnit doesn't execute ddl by default.  Suppy a routine to do that.
-	public static void executeDdlFile(File ddlFile, Connection connection) throws Exception
+	public static void executeDdlFile(InputStream ddlFile, Connection connection) throws Exception
 	{
-		
-		BufferedReader sqlReader = new BufferedReader(new FileReader(ddlFile));
+		BufferedReader sqlReader = new BufferedReader(new InputStreamReader(ddlFile));
 		StringBuffer sqlBuffer = new StringBuffer();
 		while (sqlReader.ready())
 		{

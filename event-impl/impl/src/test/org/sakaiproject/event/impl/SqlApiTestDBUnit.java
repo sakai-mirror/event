@@ -23,6 +23,7 @@ package org.sakaiproject.event.impl;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.sql.SQLException;
 
 /*******************************************************************************
@@ -54,8 +55,8 @@ public class SqlApiTestDBUnit extends AbstractSqlApiTest {
 
 		super(name);
 
-		inputDataSet = "/Users/dlhaines/dev/sakai/refactor-sql/trunk/event/event-impl/impl/src/test/dbunitTestDATA.xml";
-		ddlFile = "/Users/dlhaines/dev/sakai/refactor-sql/trunk/event/event-impl/impl/src/test/dbunitTestDDL.sql";
+		inputDataSet = "dbunitTestDATA.xml";
+		ddlFile = "dbunitTestDDL.sql";
 		pw = "";
 		user = "sa";
 
@@ -73,7 +74,8 @@ public class SqlApiTestDBUnit extends AbstractSqlApiTest {
 
 		// If there is a ddlFile then run it.
 		if (ddlFile != null && ddlFile.length() > 0) {
-			executeDdlFile(new File(ddlFile), getConnection().getConnection());
+			InputStream in = this.getClass().getClassLoader().getResourceAsStream(ddlFile);
+			executeDdlFile(in, getConnection().getConnection());
 			// Figure out how to avoid running the ddlFile more than once.
 		}
 	}
