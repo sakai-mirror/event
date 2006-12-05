@@ -22,7 +22,7 @@ package org.sakaiproject.event.impl;
 
 import java.sql.Types;
 import java.util.Date;
-import java.util.Map;
+import java.util.List;
 
 import javax.sql.DataSource;
 
@@ -32,7 +32,7 @@ import org.springframework.test.AbstractDependencyInjectionSpringContextTests;
 
 import junit.framework.Assert;
 
-public class EventTestSuite extends AbstractDependencyInjectionSpringContextTests {
+public class MultiDbSqlTest extends AbstractDependencyInjectionSpringContextTests {
 
 	@Override
 	protected String[] getConfigLocations() {
@@ -86,7 +86,7 @@ public class EventTestSuite extends AbstractDependencyInjectionSpringContextTest
 			// Ensure that selecting the last event returns the right event object
 			String selectSql = clusterEventSql.returnSelectEvent();
 			
-			Map resultMap = jdbc.queryForMap(selectSql, new Object[] {lastEventId});
+			List resultList = jdbc.queryForList(selectSql, new Object[] {lastEventId});
 
 			// FIXME: We can't do this query without a valid session ID.  There is a hidden
 			// cross-service dependency here.
