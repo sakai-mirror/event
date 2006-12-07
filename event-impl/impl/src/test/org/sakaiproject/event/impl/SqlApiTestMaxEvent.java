@@ -23,6 +23,7 @@ package org.sakaiproject.event.impl;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.sql.SQLException;
 
 import org.dbunit.Assertion;
@@ -61,7 +62,6 @@ public class SqlApiTestMaxEvent extends AbstractSqlApiTest {
 
 		super(name);
 
-
 		inputDataSet = "maxEventData.xml";
 		ddlFile = "hsqldb/sakai_event.sql";
 		pw = "";
@@ -71,8 +71,7 @@ public class SqlApiTestMaxEvent extends AbstractSqlApiTest {
 		// you can specify an on-disk persistant db.  That is most useful for debugging.
 		
 		dbName = "jdbc:hsqldb:.";
-		// dbName = "jdbc:hsqldb:/Users/dlhaines/dev/sakai/refactor-sql/trunk/event/event-impl/impl/src/test/dbtestdb";
-
+	
 		String dbProperties = "";
 		// If you need to add values to the db string you can use this.  It is most helpful for debugging.
 		//dbProperties = ";hsqldb.applog=5;server.silent=false;hsqldb.trace=true";
@@ -81,7 +80,9 @@ public class SqlApiTestMaxEvent extends AbstractSqlApiTest {
 
 		// If there is a ddlFile then run it.
 		if (ddlFile != null && ddlFile.length() > 0) {
-			executeDdlFile(getClass().getClassLoader().getResourceAsStream(ddlFile), getConnection().getConnection());
+			InputStream is = getClass().getClassLoader().getResourceAsStream(ddlFile);
+			 assertNotNull("did not find ddl file as InputStream",is);
+			 executeDdlFile(is, getConnection().getConnection());
 			// Figure out how to avoid running the ddlFile more than once.
 		}
 	}
