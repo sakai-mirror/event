@@ -176,6 +176,15 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 		this.sqlGeneratorMap = sqlGeneratorMap;
 	}
 	
+	/**
+	 * Sets the actual ClusterEventSql impl, if desired.  Overrides the values in the
+	 * sqlGeneratorMap.
+	 * 
+	 */
+	public void setClusterSql(ClusterEventSql clusterSql)
+	{
+		this.clusterSql = clusterSql;
+	}
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
 	 *********************************************************************************************************************************************************************************************************************************************************/
@@ -194,10 +203,14 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 			}
 
 			// Ensure we're using the right SQL Generator
-			String vendor = sqlService().getVendor();
-			clusterSql = sqlGeneratorMap.get(vendor);
-			if(clusterSql == null) {
-				M_log.error("Could not find a sql generator class for vendor " + vendor + " in map " + sqlGeneratorMap);
+			if(clusterSql != null) // There was no override specified, so use what's in the map
+			{
+				String vendor = sqlService().getVendor();
+				clusterSql = sqlGeneratorMap.get(vendor);
+				if(clusterSql == null) // Still can't find the sql generator.  This is a problem!
+				{
+					M_log.error("Could not find a sql generator class for vendor " + vendor + " in map " + sqlGeneratorMap);
+				}
 			}
 			
 			super.init();
