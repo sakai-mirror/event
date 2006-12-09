@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.logging.Log;
@@ -68,7 +69,10 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	/** Queue of events to write if we are batching. */
 	protected Collection m_eventQueue = null;
 	
-	/** The generator for our SQL */
+	/** The map of vendor names to sql generators */
+	protected Map<String, ClusterEventSql> sqlGeneratorMap = null;
+	
+	/** The sql generator we will be using */
 	protected ClusterEventSql clusterSql = null;
 
 	/**********************************************************************************************************************************************************************************************************************************************************
@@ -162,6 +166,16 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 		m_period = Integer.parseInt(time) * 1000L;
 	}
 
+	/**
+	 * Set the map of DB vendor IDs to Sql generators for this service.
+	 * 
+	 * @param sqlGeneratorMap
+	 */
+	public void setSqlGeneratorMap(Map sqlGeneratorMap)
+	{
+		this.sqlGeneratorMap = sqlGeneratorMap;
+	}
+	
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
 	 *********************************************************************************************************************************************************************************************************************************************************/
@@ -181,12 +195,9 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 
 			// Ensure we're using the right SQL Generator
 			String vendor = sqlService().getVendor();
-			if("oracle".equals(vendor)) {
-				clusterSql = new ClusterEventSqlOracle();
-			} else if("mysql".equals(vendor)) {
-				clusterSql = new ClusterEventSqlMySql();
-			} else {
-				clusterSql = new ClusterEventSqlHsql();
+			clusterSql = sqlGeneratorMap.get(vendor);
+			if(clusterSql == null) {
+				M_log.error("Could not find a sql generator class for vendor " + vendor + " in map " + sqlGeneratorMap);
 			}
 			
 			super.init();

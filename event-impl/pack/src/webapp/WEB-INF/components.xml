@@ -19,6 +19,14 @@
  		<property name="autoDdl"><value>${auto.ddl}</value></property>
  		<property name="period"><value>5</value></property>
  		<property name="batchWrite"><value>true</value></property>
+ 		
+ 		<property name="sqlGeneratorMap">
+ 			<map>
+ 				<entry key="hsqldb"><bean class="org.sakaiproject.event.impl.ClusterEventSqlHsql"/></entry>
+ 				<entry key="mysql"><bean class="org.sakaiproject.event.impl.ClusterEventSqlMySql"/></entry>
+ 				<entry key="oracle"><bean class="org.sakaiproject.event.impl.ClusterEventSqlOracle"/></entry>
+ 			</map>
+ 		</property>
 	</bean>
 
 	<!-- alternate, non-storage, non-clustered impl -->
