@@ -4,21 +4,20 @@
  ***********************************************************************************
  *
  * Copyright (c) 2003, 2004, 2005, 2006 The Sakai Foundation.
- * 
- * Licensed under the Educational Community License, Version 1.0 (the "License"); 
- * you may not use this file except in compliance with the License. 
+ *
+ * Licensed under the Educational Community License, Version 1.0 (the "License");
+ * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.opensource.org/licenses/ecl1.php
- * 
- * Unless required by applicable law or agreed to in writing, software 
- * distributed under the License is distributed on an "AS IS" BASIS, 
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
- * See the License for the specific language governing permissions and 
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  *
  **********************************************************************************/
-
 package org.sakaiproject.event.impl;
 
 import java.sql.ResultSet;
@@ -45,6 +44,7 @@ import org.sakaiproject.event.api.SessionState;
 import org.sakaiproject.event.api.SessionStateBindingListener;
 import org.sakaiproject.event.api.UsageSession;
 import org.sakaiproject.event.api.UsageSessionService;
+import org.sakaiproject.event.api.UsageSessionServiceSql;
 import org.sakaiproject.id.api.IdManager;
 import org.sakaiproject.thread_local.api.ThreadLocalManager;
 import org.sakaiproject.time.api.Time;
@@ -140,7 +140,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 	/**
 	 * Configuration: to run the ddl on init or not.
-	 * 
+	 *
 	 * @param value
 	 *        the auto ddl value.
 	 */
@@ -148,6 +148,24 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 	{
 		m_autoDdl = new Boolean(value).booleanValue();
 	}
+
+   protected Map<String, UsageSessionServiceSql> databaseBeans;            // contains a map of the database dependent beans injected by spring
+   protected UsageSessionServiceSql              usageSessionServiceSql;   // contains database dependent code
+
+   public void setDatabaseBeans(Map databaseBeans) {
+     this.databaseBeans = databaseBeans;
+   }
+
+   public UsageSessionServiceSql getUsageSessionServiceSql() {
+      return usageSessionServiceSql;
+   }
+
+   /**
+    * sets which bean containing database dependent code should be used depending on the database vendor.
+    */
+   public void setUsageSessionServiceSql(String vendor) {
+      this.usageSessionServiceSql = (databaseBeans.containsKey(vendor) ? databaseBeans.get(vendor) : databaseBeans.get("default"));
+   }
 
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
@@ -174,7 +192,8 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		{
 			M_log.warn("init(): ", t);
 		}
-	}
+        setUsageSessionServiceSql(sqlService().getVendor());
+    }
 
 	/**
 	 * Returns to uninitialized state.
@@ -488,7 +507,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Take this session into storage.
-		 * 
+		 *
 		 * @param session
 		 *        The usage session.
 		 * @return true if added successfully, false if not.
@@ -497,7 +516,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a session by id
-		 * 
+		 *
 		 * @param id
 		 *        The session id.
 		 * @return The session object.
@@ -506,7 +525,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a bunch of sessions by the List id session ids.
-		 * 
+		 *
 		 * @param ids
 		 *        The session id List.
 		 * @return The List (UsageSession) of session objects for these ids.
@@ -515,7 +534,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a List of usage sessions by *arbitrary criteria* for te session ids.
-		 * 
+		 *
 		 * @param joinTable
 		 *        the table name to (inner) join to
 		 * @param joinAlias
@@ -532,7 +551,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * This session is now closed.
-		 * 
+		 *
 		 * @param session
 		 *        The session which is closed.
 		 */
@@ -540,7 +559,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a list of all open sessions.
-		 * 
+		 *
 		 * @return a List (UsageSession) of all open sessions, ordered by server, then by start (asc)
 		 */
 		List getOpenSessions();
@@ -578,7 +597,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Construct fully.
-		 * 
+		 *
 		 * @param id
 		 *        The session id.
 		 * @param server
@@ -612,7 +631,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Set the browser id for this session, decoded from the user agent string.
-		 * 
+		 *
 		 * @param agent
 		 *        The user agent string.
 		 */
@@ -686,7 +705,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		{
 			return m_user;
 		}
-		
+
 		/**
 		 * @inheritDoc
 		 */
@@ -784,7 +803,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Has this session gone inactive?
-		 * 
+		 *
 		 * @return True if the session has seen no activity in the last timeout period, false if it's still active.
 		 */
 		protected boolean isInactive()
@@ -1019,7 +1038,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * If the object is a SessionStateBindingListener, unbind it
-		 * 
+		 *
 		 * @param attributeName
 		 *        The attribute name.
 		 * @param attribute
@@ -1043,7 +1062,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * If the object is a SessionStateBindingListener, bind it
-		 * 
+		 *
 		 * @param attributeName
 		 *        The attribute name.
 		 * @param attribute
@@ -1093,7 +1112,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Take this session into storage.
-		 * 
+		 *
 		 * @param session
 		 *        The usage session.
 		 * @return true if added successfully, false if not.
@@ -1101,7 +1120,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		public boolean addSession(UsageSession session)
 		{
 			// and store it in the db
-			String statement = "insert into SAKAI_SESSION (SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END) values (?, ?, ?, ?, ?, ?, ?)";
+         String statement = usageSessionServiceSql.getInsertSakaiSessionSql();
 
 			// collect the fields
 			Object fields[] = new Object[7];
@@ -1127,7 +1146,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a session by id
-		 * 
+		 *
 		 * @param id
 		 *        The session id.
 		 * @return The session object.
@@ -1137,7 +1156,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			UsageSession rv = null;
 
 			// check the db
-			String statement = "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END from SAKAI_SESSION where SESSION_ID = ?";
+         String statement = usageSessionServiceSql.getSakaiSessionSql1();
 
 			// send in the last seq number parameter
 			Object[] fields = new Object[1];
@@ -1196,7 +1215,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a List of usage sessions by *arbitrary criteria* for te session ids.
-		 * 
+		 *
 		 * @param joinTable
 		 *        the table name to (inner) join to
 		 * @param joinAlias
@@ -1217,14 +1236,8 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			String alias = joinAlias + "X";
 
 			// use criteria as the where clause
-			String statement = "select " + alias + ".SESSION_ID," + alias + ".SESSION_SERVER," + alias
-					+ ".SESSION_USER," + alias + ".SESSION_IP," + alias + ".SESSION_USER_AGENT," + alias + ".SESSION_START," + alias + ".SESSION_END"
-					+ " from SAKAI_SESSION " + alias
-					+ " inner join " + joinTable + " " + joinAlias
-					+ " ON " + alias + ".SESSION_ID = " + joinAlias + "." + joinColumn
-					+ " where " + joinCriteria;
-
-			List sessions = sqlService().dbRead(statement, values, new SqlReader()
+         String statement = usageSessionServiceSql.getSakaiSessionSql3(alias, joinAlias, joinTable, joinColumn, joinCriteria);
+         List   sessions  = sqlService().dbRead(statement, values, new SqlReader()
 			{
 				public Object readSqlResultRecord(ResultSet result)
 				{
@@ -1254,14 +1267,14 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * This session is now closed.
-		 * 
+		 *
 		 * @param session
 		 *        The session which is closed.
 		 */
 		public void closeSession(UsageSession session)
 		{
 			// close the session on the db
-			String statement = "update SAKAI_SESSION set SESSION_END = ? where SESSION_ID = ?";
+         String statement = usageSessionServiceSql.getUpdateSakaiSessionSql();
 
 			// collect the fields
 			Object fields[] = new Object[2];
@@ -1279,7 +1292,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a list of all open sessions.
-		 * 
+		 *
 		 * @return a List (UsageSession) of all open sessions, ordered by server, then by start (asc)
 		 */
 		public List getOpenSessions()
@@ -1287,10 +1300,8 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			UsageSession rv = null;
 
 			// check the db
-			String statement = "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END"
-					+ " from SAKAI_SESSION where SESSION_START = SESSION_END ORDER BY SESSION_SERVER ASC, SESSION_START ASC";
-
-			List sessions = sqlService().dbRead(statement, null, new SqlReader()
+         String statement = usageSessionServiceSql.getSakaiSessionSql2();
+         List   sessions  = sqlService().dbRead(statement, null, new SqlReader()
 			{
 				public Object readSqlResultRecord(ResultSet result)
 				{
