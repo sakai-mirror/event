@@ -3,18 +3,18 @@
  * $Id$
  ***********************************************************************************
  *
- * Copyright (c) 2003, 2004, 2005, 2006 The Sakai Foundation.
- * 
- * Licensed under the Educational Community License, Version 1.0 (the "License"); 
- * you may not use this file except in compliance with the License. 
+ * Copyright (c) 2003, 2004, 2005, 2006, 2007 The Sakai Foundation.
+ *
+ * Licensed under the Educational Community License, Version 1.0 (the "License");
+ * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.opensource.org/licenses/ecl1.php
- * 
- * Unless required by applicable law or agreed to in writing, software 
- * distributed under the License is distributed on an "AS IS" BASIS, 
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
- * See the License for the specific language governing permissions and 
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  *
  **********************************************************************************/
@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.logging.Log;
@@ -67,9 +68,9 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	/** Queue of events to write if we are batching. */
 	protected Collection m_eventQueue = null;
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * Dependencies
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	/**
 	 * @return the MemoryService collaborator.
@@ -86,9 +87,9 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	 */
 	protected abstract TimeService timeService();
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * Configuration
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	/** Unless false, check the db for events from the other cluster servers. */
 	protected boolean m_checkDb = true;
@@ -158,15 +159,40 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 		m_period = Integer.parseInt(time) * 1000L;
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/** contains a map of the database dependent handler. */
+	protected Map<String, ClusterEventTrackingServiceSql> databaseBeans;
+
+	/** contains database dependent code. */
+	protected ClusterEventTrackingServiceSql clusterEventTrackingServiceSql;
+
+	public void setDatabaseBeans(Map databaseBeans)
+	{
+		this.databaseBeans = databaseBeans;
+	}
+
+	public ClusterEventTrackingServiceSql getClusterEventTrackingServiceSql()
+	{
+		return clusterEventTrackingServiceSql;
+	}
+
+	/**
+	 * sets which bean containing database dependent code should be used depending on the database vendor.
+	 */
+	public void setClusterEventTrackingServiceSql(String vendor)
+	{
+		this.clusterEventTrackingServiceSql = (databaseBeans.containsKey(vendor) ? databaseBeans.get(vendor) : databaseBeans.get("default"));
+	}
+
+	/*************************************************************************************************************************************************
 	 * Init and Destroy
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	/**
 	 * Final initialization, once all dependencies are set.
 	 */
 	public void init()
 	{
+		setClusterEventTrackingServiceSql(sqlService().getVendor());
 		try
 		{
 			// if we are auto-creating our schema, check and create
@@ -207,9 +233,9 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 		super.destroy();
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * Event post / flow
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	/**
 	 * Cause this new event to get to wherever it has to go for persistence, etc.
@@ -294,7 +320,8 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 				conn.setAutoCommit(false);
 			}
 
-			// Note: investigate batch writing via the jdbc driver: make sure we can still use prepared statements (check out host arrays, too) -ggolden
+			// Note: investigate batch writing via the jdbc driver: make sure we can still use prepared statements (check out host arrays, too)
+			// -ggolden
 
 			// common preparation for each insert
 			String statement = insertStatement();
@@ -359,63 +386,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	 */
 	protected String insertStatement()
 	{
-		String statement;
-		if ("oracle".equals(sqlService().getVendor()))
-		{
-			statement = "insert into SAKAI_EVENT" + " (EVENT_ID,EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)" + " values ("
-			// form the id based on the sequence
-					+ " SAKAI_EVENT_SEQ.NEXTVAL,"
-					// date
-					+ " ?,"
-					// event
-					+ " ?,"
-					// reference
-					+ " ?,"
-					// session id
-					+ " ?,"
-					// code
-					+ " ?"
-
-					+ " )";
-		}
-		else if ("mysql".equals(sqlService().getVendor()))
-		{
-			// leave out the EVENT_ID as it will be automatically generated on the server
-			statement = "insert into SAKAI_EVENT" + " (EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)" + " values ("
-			// date
-					+ " ?,"
-					// event
-					+ " ?,"
-					// reference
-					+ " ?,"
-					// session id
-					+ " ?,"
-					// code
-					+ " ?"
-
-					+ " )";
-		}
-		else
-		// if ("hsqldb".equals(sqlService().getVendor()))
-		{
-			statement = "insert into SAKAI_EVENT" + " (EVENT_ID,EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE)" + " values ("
-			// form the id based on the sequence
-					+ " NEXT VALUE FOR SAKAI_EVENT_SEQ,"
-					// date
-					+ " ?,"
-					// event
-					+ " ?,"
-					// reference
-					+ " ?,"
-					// session id
-					+ " ?,"
-					// code
-					+ " ?"
-
-					+ " )";
-		}
-
-		return statement;
+		return clusterEventTrackingServiceSql.getInsertEventSql();
 	}
 
 	/**
@@ -447,9 +418,9 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 		fields[4] = (event.getModify() ? "m" : "a");
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * Runnable
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	/**
 	 * Start the clean and report thread.
@@ -483,7 +454,8 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	 */
 	public void run()
 	{
-		// since we might be running while the component manager is still being created and populated, such as at server startup, wait here for a complete component manager
+		// since we might be running while the component manager is still being created and populated, such as at server startup, wait here for a
+		// complete component manager
 		ComponentManager.waitTillConfigured();
 
 		// find the latest event in the db
@@ -521,28 +493,14 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 				// check the db for new events
 				// Note: the events may not all have sessions, so to get them we need an outer join.
 				// TODO: switch to a "view" read once that's established, for now, a join -ggolden
-				String statement = null;
-				if ("oracle".equals(sqlService().getVendor()))
-				{
-					// this now has Oracle specific hint to improve performance with large tables -ggolden
-					statement = "select /*+ FIRST_ROWS */ EVENT_ID,EVENT_DATE,EVENT,REF,SAKAI_EVENT.SESSION_ID,EVENT_CODE,SESSION_SERVER"
-							+ " from SAKAI_EVENT,SAKAI_SESSION"
-							+ " where (SAKAI_EVENT.SESSION_ID = SAKAI_SESSION.SESSION_ID(+)) and (EVENT_ID > ?)";
-				}
-				else
-				// non-Oracle, without Oracle hint
-				{
-					statement = "select EVENT_ID,EVENT_DATE,EVENT,REF,SAKAI_EVENT.SESSION_ID,EVENT_CODE,SESSION_SERVER"
-							+ " from SAKAI_EVENT,SAKAI_SESSION"
-							+ " where (SAKAI_EVENT.SESSION_ID = SAKAI_SESSION.SESSION_ID) and (EVENT_ID > ?)";
-				}
+				String statement = clusterEventTrackingServiceSql.getEventSql();
 
 				// we might want a left join, which would get us records from non-sessions, which the above mysql code does NOT give -ggolden
-				//				select e.EVENT_ID,e.EVENT_DATE,e.EVENT,e.REF,e.SESSION_ID,e.EVENT_CODE,s.SESSION_SERVER
-				//				from SAKAI_EVENT e
-				//				left join SAKAI_SESSION s on (e.SESSION_ID = s.SESSION_ID)
-				//				where EVENT_ID > 0
-				
+				// select e.EVENT_ID,e.EVENT_DATE,e.EVENT,e.REF,e.SESSION_ID,e.EVENT_CODE,s.SESSION_SERVER
+				// from SAKAI_EVENT e
+				// left join SAKAI_SESSION s on (e.SESSION_ID = s.SESSION_ID)
+				// where EVENT_ID > 0
+
 				// send in the last seq number parameter
 				Object[] fields = new Object[1];
 				fields[0] = new Long(m_lastEventSeq);
@@ -593,7 +551,8 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 								return null;
 							}
 
-							// Note: events from outside the server don't need notification info, since notification is processed only on internal events -ggolden
+							// Note: events from outside the server don't need notification info, since notification is processed only on internal
+							// events -ggolden
 							BaseEvent event = new BaseEvent(id, function, ref, code.equals("m"), NotificationService.NOTI_NONE);
 							if (nonSessionEvent)
 							{
@@ -641,7 +600,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	 */
 	protected void initLastEvent()
 	{
-		String statement = "select MAX(EVENT_ID) from SAKAI_EVENT";
+		String statement = clusterEventTrackingServiceSql.getMaxEventIdSql();
 
 		sqlService().dbRead(statement, null, new SqlReader()
 		{

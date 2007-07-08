@@ -3,18 +3,18 @@
  * $Id$
  ***********************************************************************************
  *
- * Copyright (c) 2003, 2004, 2005, 2006 The Sakai Foundation.
- * 
- * Licensed under the Educational Community License, Version 1.0 (the "License"); 
- * you may not use this file except in compliance with the License. 
+ * Copyright (c) 2003, 2004, 2005, 2006, 2007 The Sakai Foundation.
+ *
+ * Licensed under the Educational Community License, Version 1.0 (the "License");
+ * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.opensource.org/licenses/ecl1.php
- * 
- * Unless required by applicable law or agreed to in writing, software 
- * distributed under the License is distributed on an "AS IS" BASIS, 
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
- * See the License for the specific language governing permissions and 
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  *
  **********************************************************************************/
@@ -61,7 +61,8 @@ import org.sakaiproject.user.api.UserNotDefinedException;
 
 /**
  * <p>
- * UsageSessionServiceAdaptor implements the UsageSessionService. The Session aspects are done as an adaptor to the SessionManager. UsageSession entities are handled as was in the ClusterUsageSessionService.
+ * UsageSessionServiceAdaptor implements the UsageSessionService. The Session aspects are done as an adaptor to the SessionManager. UsageSession
+ * entities are handled as was in the ClusterUsageSessionService.
  * </p>
  */
 public abstract class UsageSessionServiceAdaptor implements UsageSessionService
@@ -72,9 +73,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 	/** Storage manager for this service. */
 	protected Storage m_storage = null;
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * Abstractions, etc.
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	/**
 	 * Construct storage for this service.
@@ -84,9 +85,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		return new ClusterStorage();
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * Dependencies
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	/**
 	 * @return the TimeService collaborator.
@@ -113,14 +114,17 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 	 * @return the SessionManager collaborator.
 	 */
 	protected abstract SessionManager sessionManager();
+
 	/**
 	 * @return the IdManager collaborator.
 	 */
 	protected abstract IdManager idManager();
+
 	/**
 	 * @return the EventTrackingService collaborator.
 	 */
 	protected abstract EventTrackingService eventTrackingService();
+
 	/**
 	 * @return the AuthzGroupService collaborator.
 	 */
@@ -131,9 +135,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 	 */
 	protected abstract UserDirectoryService userDirectoryService();
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * Configuration
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	/** Configuration: to run the ddl on init or not. */
 	protected boolean m_autoDdl = false;
@@ -149,9 +153,33 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		m_autoDdl = new Boolean(value).booleanValue();
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/** contains a map of the database dependent handlers. */
+	protected Map<String, UsageSessionServiceSql> databaseBeans;
+
+	/** The db handler we are using. */
+	protected UsageSessionServiceSql usageSessionServiceSql;
+
+	public void setDatabaseBeans(Map databaseBeans)
+	{
+		this.databaseBeans = databaseBeans;
+	}
+
+	public UsageSessionServiceSql getUsageSessionServiceSql()
+	{
+		return usageSessionServiceSql;
+	}
+
+	/**
+	 * sets which bean containing database dependent code should be used depending on the database vendor.
+	 */
+	public void setUsageSessionServiceSql(String vendor)
+	{
+		this.usageSessionServiceSql = (databaseBeans.containsKey(vendor) ? databaseBeans.get(vendor) : databaseBeans.get("default"));
+	}
+
+	/*************************************************************************************************************************************************
 	 * Init and Destroy
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	public UsageSessionServiceAdaptor()
 	{
@@ -174,6 +202,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		{
 			M_log.warn("init(): ", t);
 		}
+		setUsageSessionServiceSql(sqlService().getVendor());
 	}
 
 	/**
@@ -186,9 +215,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		M_log.info("destroy()");
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * UsageSessionService implementation
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	/**
 	 * @inheritDoc
@@ -210,13 +239,13 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 				// if it is for another user, we will create a new session, log a warning, and unbound/close the existing one
 				s.setAttribute(USAGE_SESSION_KEY, null);
-				M_log.warn("startSession: replacing existing UsageSession: " + session.getId() + " user: " + session.getUserId()
-						+ " for new user: " + userId);
+				M_log.warn("startSession: replacing existing UsageSession: " + session.getId() + " user: " + session.getUserId() + " for new user: "
+						+ userId);
 			}
 
 			// create the usage session and bind it to the session
-			session = new BaseUsageSession(idManager().createUuid(), serverConfigurationService().getServerIdInstance(), userId,
-					remoteAddress, userAgent, null, null);
+			session = new BaseUsageSession(idManager().createUuid(), serverConfigurationService().getServerIdInstance(), userId, remoteAddress,
+					userAgent, null, null);
 
 			// store
 			if (m_storage.addSession(session))
@@ -470,9 +499,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		}
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * Storage
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	protected interface Storage
 	{
@@ -546,9 +575,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		List getOpenSessions();
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * UsageSession
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	protected class BaseUsageSession implements UsageSession, SessionBindingListener
 	{
@@ -686,7 +715,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		{
 			return m_user;
 		}
-		
+
 		/**
 		 * @inheritDoc
 		 */
@@ -843,15 +872,15 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		 */
 		public String toString()
 		{
-			return "[" + ((m_id == null) ? "" : m_id) + " | " + ((m_server == null) ? "" : m_server) + " | "
-					+ ((m_user == null) ? "" : m_user) + " | " + ((m_ip == null) ? "" : m_ip) + " | "
-					+ ((m_userAgent == null) ? "" : m_userAgent) + " | " + m_start.toStringGmtFull() + " ]";
+			return "[" + ((m_id == null) ? "" : m_id) + " | " + ((m_server == null) ? "" : m_server) + " | " + ((m_user == null) ? "" : m_user)
+					+ " | " + ((m_ip == null) ? "" : m_ip) + " | " + ((m_userAgent == null) ? "" : m_userAgent) + " | " + m_start.toStringGmtFull()
+					+ " ]";
 		}
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * SessionState
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	public class SessionStateWrapper implements SessionState
 	{
@@ -1066,9 +1095,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		}
 	}
 
-	/**********************************************************************************************************************************************************************************************************************************************************
+	/*************************************************************************************************************************************************
 	 * Storage component
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	 ************************************************************************************************************************************************/
 
 	protected class ClusterStorage implements Storage
 	{
@@ -1101,7 +1130,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		public boolean addSession(UsageSession session)
 		{
 			// and store it in the db
-			String statement = "insert into SAKAI_SESSION (SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END) values (?, ?, ?, ?, ?, ?, ?)";
+			String statement = usageSessionServiceSql.getInsertSakaiSessionSql();
 
 			// collect the fields
 			Object fields[] = new Object[7];
@@ -1137,7 +1166,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			UsageSession rv = null;
 
 			// check the db
-			String statement = "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END from SAKAI_SESSION where SESSION_ID = ?";
+			String statement = usageSessionServiceSql.getSakaiSessionSql1();
 
 			// send in the last seq number parameter
 			Object[] fields = new Object[1];
@@ -1217,13 +1246,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			String alias = joinAlias + "X";
 
 			// use criteria as the where clause
-			String statement = "select " + alias + ".SESSION_ID," + alias + ".SESSION_SERVER," + alias
-					+ ".SESSION_USER," + alias + ".SESSION_IP," + alias + ".SESSION_USER_AGENT," + alias + ".SESSION_START," + alias + ".SESSION_END"
-					+ " from SAKAI_SESSION " + alias
-					+ " inner join " + joinTable + " " + joinAlias
-					+ " ON " + alias + ".SESSION_ID = " + joinAlias + "." + joinColumn
-					+ " where " + joinCriteria;
-
+			String statement = usageSessionServiceSql.getSakaiSessionSql3(alias, joinAlias, joinTable, joinColumn, joinCriteria);
 			List sessions = sqlService().dbRead(statement, values, new SqlReader()
 			{
 				public Object readSqlResultRecord(ResultSet result)
@@ -1261,7 +1284,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		public void closeSession(UsageSession session)
 		{
 			// close the session on the db
-			String statement = "update SAKAI_SESSION set SESSION_END = ? where SESSION_ID = ?";
+			String statement = usageSessionServiceSql.getUpdateSakaiSessionSql();
 
 			// collect the fields
 			Object fields[] = new Object[2];
@@ -1287,9 +1310,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			UsageSession rv = null;
 
 			// check the db
-			String statement = "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END"
-					+ " from SAKAI_SESSION where SESSION_START = SESSION_END ORDER BY SESSION_SERVER ASC, SESSION_START ASC";
-
+			String statement = usageSessionServiceSql.getSakaiSessionSql2();
 			List sessions = sqlService().dbRead(statement, null, new SqlReader()
 			{
 				public Object readSqlResultRecord(ResultSet result)
