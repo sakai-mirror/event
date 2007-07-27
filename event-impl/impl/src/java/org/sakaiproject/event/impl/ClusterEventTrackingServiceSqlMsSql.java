@@ -26,4 +26,12 @@ package org.sakaiproject.event.impl;
  */
 public class ClusterEventTrackingServiceSqlMsSql extends ClusterEventTrackingServiceSqlDefault
 {
+   /**
+    * returns the sql statement which inserts an event into the sakai_event table.
+    */
+   public String getInsertEventSql()
+   {
+      // leave out the EVENT_ID as it will be automatically generated on the server
+      return "insert into SAKAI_EVENT (EVENT_DATE,EVENT,REF,SESSION_ID,EVENT_CODE) values (?, ?, ?, ?, ? )";
+   }
 }
