@@ -33,7 +33,6 @@ import org.sakaiproject.entity.cover.EntityManager;
 import org.sakaiproject.event.api.Event;
 import org.sakaiproject.event.api.NotificationAction;
 import org.sakaiproject.event.cover.NotificationService;
-import org.sakaiproject.mailarchive.cover.MailArchiveService;
 import org.sakaiproject.site.api.Site;
 import org.sakaiproject.site.cover.SiteService;
 
@@ -223,8 +222,8 @@ public class SiteEmailNotification extends EmailNotification
 
 			// check that the channel exists
 			String channel = "/mailarchive/channel/" + siteId + "/main";
-			MailArchiveService.getChannel(channel);
-
+			EntityManager.newReference(channel);
+	
 			// find the alias for this site's mail channel
 			List all = AliasService.getAliases(channel);
 			if (!all.isEmpty()) email = ((Alias) all.get(0)).getId();

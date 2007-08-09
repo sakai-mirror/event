@@ -13,7 +13,6 @@
   <classpathentry combineaccessrules="false" kind="src" path="/tool-api"/>
   <classpathentry combineaccessrules="false" kind="src" path="/util-api"/>
   <classpathentry combineaccessrules="false" kind="src" path="/util-util"/>
-  <classpathentry combineaccessrules="false" kind="src" path="/mailarchive-api"/>
   <classpathentry combineaccessrules="false" kind="src" path="/alias-api"/>
   <classpathentry combineaccessrules="false" kind="src" path="/message-api"/>
   <classpathentry kind="output" path="bin"/>
