@@ -24,5 +24,6 @@
     <module>event-impl/impl</module>
     <module>event-impl/pack</module>
     <module>event-util/util</module>
+    <module>event-shared-deploy</module>
   </modules>
 </project>
