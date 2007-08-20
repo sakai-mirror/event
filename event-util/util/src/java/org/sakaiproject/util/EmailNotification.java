@@ -28,7 +28,6 @@ import java.util.Vector;
 import org.sakaiproject.component.cover.ServerConfigurationService;
 import org.sakaiproject.email.cover.DigestService;
 import org.sakaiproject.email.cover.EmailService;
-import org.sakaiproject.entity.api.Entity;
 import org.sakaiproject.entity.api.EntityPropertyNotDefinedException;
 import org.sakaiproject.entity.api.Reference;
 import org.sakaiproject.entity.api.ResourceProperties;
@@ -68,8 +67,15 @@ import org.w3c.dom.Element;
  */
 public class EmailNotification implements NotificationAction
 {
+	private final String MULTIPART_BOUNDARY = "======sakai-multi-part-boundary======";
+	private final String BOUNDARY_LINE = "\n\n--"+MULTIPART_BOUNDARY+"\n";
+	private final String TERMINATION_LINE = "\n\n--"+MULTIPART_BOUNDARY+"--\n\n";
+
+	private final String MIME_ADVISORY = "This message is for MIME-compliant mail readers.";
+	
 	/** The related site id. */
 	protected String m_siteId = null;
+	protected Event event = null;
 
 	/**
 	 * Construct.
@@ -119,10 +125,14 @@ public class EmailNotification implements NotificationAction
 	 */
 	public NotificationAction getClone()
 	{
-		EmailNotification clone = new EmailNotification();
+		EmailNotification clone = makeEmailNotification();
 		clone.set(this);
 
 		return clone;
+	}
+
+	protected EmailNotification makeEmailNotification() {
+		return null;
 	}
 
 	/**
@@ -146,6 +156,7 @@ public class EmailNotification implements NotificationAction
 	 */
 	public void notify(Notification notification, Event event)
 	{
+		this.event = event;
 		// ignore events marked for no notification
 		if (event.getPriority() == NotificationService.NOTI_NONE) return;
 
@@ -176,7 +187,6 @@ public class EmailNotification implements NotificationAction
 		{
 			// get a site title: use either the configured site, or if not configured, the site (context) of the resource
 			Reference ref = EntityManager.newReference(event.getResource());
-			Entity r = ref.getEntity();
 			String title = (getSite() != null) ? getSite() : ref.getContext();
 			try
 			{
@@ -245,8 +255,51 @@ public class EmailNotification implements NotificationAction
 	 * @return the message for the email.
 	 */
 	protected String getMessage(Event event)
-	{
-		return "";
+	{	
+		StringBuffer message = new StringBuffer();
+		message.append(MIME_ADVISORY);
+		message.append(BOUNDARY_LINE);
+		message.append(plainTextHeaders());
+		message.append(plainTextContent());
+		message.append(BOUNDARY_LINE);
+		message.append(htmlHeaders());
+		message.append(htmlPreamble());
+		message.append(htmlContent());
+		message.append(htmlEnd());
+		message.append(TERMINATION_LINE);
+		return message.toString();
+	}
+
+	protected String plainTextHeaders() {
+		return "Content-Type: text/plain\n\n";
+	}
+	
+	protected String plainTextContent() {
+		return null;
+	}
+	
+	protected String htmlHeaders() {
+		return "Content-Type: text/html\n\n";
+	}
+	
+	protected String htmlPreamble() {
+		StringBuffer buf = new StringBuffer();
+		buf.append("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n");
+		buf.append("    \"http://www.w3.org/TR/html4/loose.dtd\">\n");
+		buf.append("<html>\n");
+		buf.append("  <head><title>");
+		buf.append(getSubject());
+		buf.append("</title></head>\n");
+		buf.append("  <body>\n");
+		return buf.toString();
+	}
+	
+	protected String htmlContent() {
+		return Web.encodeUrlsAsHtml(FormattedText.escapeHtml(plainTextContent(),true));
+	}
+	
+	protected String htmlEnd() {
+		return "\n  </body>\n</html>\n";
 	}
 
 	/**
@@ -270,9 +323,14 @@ public class EmailNotification implements NotificationAction
 	 *        The event that matched criteria to cause the notification.
 	 * @return the additional headers for the email.
 	 */
-	protected List getHeaders(Event event)
+	protected List<String> getHeaders(Event event)
 	{
-		return new Vector();
+		List<String> rv = new Vector<String>();
+		
+		rv.add("MIME-Version: 1.0");
+		rv.add("Content-Type: multipart/alternative; boundary=\""+MULTIPART_BOUNDARY+"\"");
+		
+		return rv;
 	}
 
 	/**
@@ -593,4 +651,17 @@ public class EmailNotification implements NotificationAction
 
 		return "\"" + userDisplay + "\" <" + userEmail + ">";
 	}
+	
+	/**
+	 * Get the subject for the email.
+	 * 
+	 * @param event
+	 *        The event that matched criteria to cause the notification.
+	 * @return the subject for the email.
+	 */
+	protected String getSubject()
+	{
+		return findHeaderValue("Subject", getHeaders(this.event));
+	}
+	
 }

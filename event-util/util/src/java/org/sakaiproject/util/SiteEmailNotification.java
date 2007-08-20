@@ -76,7 +76,7 @@ public class SiteEmailNotification extends EmailNotification
 	 */
 	public NotificationAction getClone()
 	{
-		SiteEmailNotification clone = new SiteEmailNotification();
+		EmailNotification clone = makeEmailNotification();
 		clone.set(this);
 
 		return clone;
