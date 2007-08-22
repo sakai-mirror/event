@@ -144,7 +144,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 	/**
 	 * Configuration: to run the ddl on init or not.
-	 * 
+	 *
 	 * @param value
 	 *        the auto ddl value.
 	 */
@@ -244,8 +244,8 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			}
 
 			// create the usage session and bind it to the session
-			session = new BaseUsageSession(idManager().createUuid(), serverConfigurationService().getServerIdInstance(), userId, remoteAddress,
-					userAgent, null, null);
+			session = new BaseUsageSession(idManager().createUuid(), serverConfigurationService().getServerIdInstance(), userId,
+					remoteAddress, userAgent);
 
 			// store
 			if (m_storage.addSession(session))
@@ -517,7 +517,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Take this session into storage.
-		 * 
+		 *
 		 * @param session
 		 *        The usage session.
 		 * @return true if added successfully, false if not.
@@ -526,7 +526,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a session by id
-		 * 
+		 *
 		 * @param id
 		 *        The session id.
 		 * @return The session object.
@@ -535,7 +535,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a bunch of sessions by the List id session ids.
-		 * 
+		 *
 		 * @param ids
 		 *        The session id List.
 		 * @return The List (UsageSession) of session objects for these ids.
@@ -544,7 +544,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a List of usage sessions by *arbitrary criteria* for te session ids.
-		 * 
+		 *
 		 * @param joinTable
 		 *        the table name to (inner) join to
 		 * @param joinAlias
@@ -561,7 +561,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * This session is now closed.
-		 * 
+		 *
 		 * @param session
 		 *        The session which is closed.
 		 */
@@ -569,7 +569,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a list of all open sessions.
-		 * 
+		 *
 		 * @return a List (UsageSession) of all open sessions, ordered by server, then by start (asc)
 		 */
 		List getOpenSessions();
@@ -605,9 +605,37 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		/** The time the session was closed. */
 		protected Time m_end = null;
 
+		/** Flag for active session */
+		protected boolean m_active = false;
+
 		/**
-		 * Construct fully.
-		 * 
+		 * Construct fully from persisted data.
+		 *
+		 * @param result SQL result set containing:
+		 *        The session id,
+		 *        The server id which is hosting the session,
+		 *        The user id for this session,
+		 *        The IP Address from which this session originated,
+		 *        The User Agent string describing the browser used in this session,
+		 *        True if the session is open; null if it's closed.
+		 */
+		public BaseUsageSession(ResultSet result) throws SQLException
+		{
+			m_id = result.getString(1);
+			m_server = result.getString(2);
+			m_user = result.getString(3);
+			m_ip = result.getString(4);
+			m_userAgent = result.getString(5);
+			m_start = timeService().newTime(result.getTimestamp(6, sqlService().getCal()).getTime());
+			m_end = timeService().newTime(result.getTimestamp(7, sqlService().getCal()).getTime());
+			Boolean isActive = result.getBoolean(8);
+			m_active = ((isActive != null) && isActive.booleanValue());
+			setBrowserId(m_userAgent);
+		}
+
+		/**
+		 * Construct new active session.
+		 *
 		 * @param id
 		 *        The session id.
 		 * @param server
@@ -619,29 +647,23 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		 * @param agent
 		 *        The User Agent string describing the browser used in this session.
 		 */
-		public BaseUsageSession(String id, String server, String user, String address, String agent, Time start, Time end)
+		public BaseUsageSession(String id, String server, String user, String address, String agent)
 		{
 			m_id = id;
 			m_server = server;
 			m_user = user;
 			m_ip = address;
 			m_userAgent = agent;
-			if (start != null)
-			{
-				m_start = start;
-				m_end = end;
-			}
-			else
-			{
-				m_start = timeService().newTime();
-				m_end = m_start;
-			}
+			m_start = timeService().newTime();
+			m_end = m_start;
+			m_active = true;
 			setBrowserId(agent);
 		}
 
+
 		/**
 		 * Set the browser id for this session, decoded from the user agent string.
-		 * 
+		 *
 		 * @param agent
 		 *        The user agent string.
 		 */
@@ -696,6 +718,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			if (!isClosed())
 			{
 				m_end = timeService().newTime();
+				m_active = false;
 				m_storage.closeSession(this);
 			}
 		}
@@ -705,7 +728,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		 */
 		public boolean isClosed()
 		{
-			return (!(m_end.equals(m_start)));
+			return !m_active;
 		}
 
 		/**
@@ -813,7 +836,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Has this session gone inactive?
-		 * 
+		 *
 		 * @return True if the session has seen no activity in the last timeout period, false if it's still active.
 		 */
 		protected boolean isInactive()
@@ -833,6 +856,15 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		 */
 		public void valueUnbound(SessionBindingEvent sbe)
 		{
+			invalidate();
+		}
+		
+		/**
+		 * Called when logging out, when timed out, and when being
+		 * cleaned up after a server crash.
+		 */
+		public void invalidate()
+		{
 			// if we didn't close this already, close
 			if (!isClosed())
 			{
@@ -841,7 +873,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 				// generate the logout event
 				logoutEvent(this);
-			}
+			}			
 		}
 
 		/**
@@ -1048,7 +1080,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * If the object is a SessionStateBindingListener, unbind it
-		 * 
+		 *
 		 * @param attributeName
 		 *        The attribute name.
 		 * @param attribute
@@ -1072,7 +1104,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * If the object is a SessionStateBindingListener, bind it
-		 * 
+		 *
 		 * @param attributeName
 		 *        The attribute name.
 		 * @param attribute
@@ -1122,7 +1154,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Take this session into storage.
-		 * 
+		 *
 		 * @param session
 		 *        The usage session.
 		 * @return true if added successfully, false if not.
@@ -1132,18 +1164,17 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			// and store it in the db
 			String statement = usageSessionServiceSql.getInsertSakaiSessionSql();
 
-			// collect the fields
-			Object fields[] = new Object[7];
-			fields[0] = session.getId();
-			fields[1] = session.getServer();
-			fields[2] = session.getUserId();
-			fields[3] = session.getIpAddress();
-			fields[4] = session.getUserAgent();
-			fields[5] = session.getStart();
-			fields[6] = session.getEnd();
-
 			// process the insert
-			boolean ok = sqlService().dbWrite(statement, fields);
+			boolean ok = sqlService().dbWrite(statement, new Object[] {
+				session.getId(),
+				session.getServer(),
+				session.getUserId(),
+				session.getIpAddress(),
+				session.getUserAgent(),
+				session.getStart(),
+				session.getEnd(),
+				session.isClosed() ? null : new Boolean(true)
+			});
 			if (!ok)
 			{
 				M_log.warn(".addSession(): dbWrite failed");
@@ -1156,7 +1187,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a session by id
-		 * 
+		 *
 		 * @param id
 		 *        The session id.
 		 * @return The session object.
@@ -1178,17 +1209,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 				{
 					try
 					{
-						// read the UsageSession
-						String id = result.getString(1);
-						String server = result.getString(2);
-						String userId = result.getString(3);
-						String ip = result.getString(4);
-						String agent = result.getString(5);
-						Time start = timeService().newTime(result.getTimestamp(6, sqlService().getCal()).getTime());
-						Time end = timeService().newTime(result.getTimestamp(7, sqlService().getCal()).getTime());
-
-						UsageSession session = new BaseUsageSession(id, server, userId, ip, agent, start, end);
-						return session;
+						return new BaseUsageSession(result);
 					}
 					catch (SQLException ignore)
 					{
@@ -1225,7 +1246,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a List of usage sessions by *arbitrary criteria* for te session ids.
-		 * 
+		 *
 		 * @param joinTable
 		 *        the table name to (inner) join to
 		 * @param joinAlias
@@ -1240,8 +1261,6 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		 */
 		public List getSessions(String joinTable, String joinAlias, String joinColumn, String joinCriteria, Object[] values)
 		{
-			UsageSession rv = null;
-
 			// use an alias different from the alias given
 			String alias = joinAlias + "X";
 
@@ -1253,17 +1272,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 				{
 					try
 					{
-						// read the UsageSession
-						String id = result.getString(1);
-						String server = result.getString(2);
-						String userId = result.getString(3);
-						String ip = result.getString(4);
-						String agent = result.getString(5);
-						Time start = timeService().newTime(result.getTimestamp(6, sqlService().getCal()).getTime());
-						Time end = timeService().newTime(result.getTimestamp(7, sqlService().getCal()).getTime());
-
-						UsageSession session = new BaseUsageSession(id, server, userId, ip, agent, start, end);
-						return session;
+						return new BaseUsageSession(result);
 					}
 					catch (SQLException ignore)
 					{
@@ -1277,7 +1286,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * This session is now closed.
-		 * 
+		 *
 		 * @param session
 		 *        The session which is closed.
 		 */
@@ -1286,13 +1295,12 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			// close the session on the db
 			String statement = usageSessionServiceSql.getUpdateSakaiSessionSql();
 
-			// collect the fields
-			Object fields[] = new Object[2];
-			fields[0] = session.getEnd();
-			fields[1] = session.getId();
-
 			// process the statement
-			boolean ok = sqlService().dbWrite(statement, fields);
+			boolean ok = sqlService().dbWrite(statement, new Object[]{
+				session.getEnd(),
+				session.isClosed() ? null : new Boolean(true),
+				session.getId()
+			});
 			if (!ok)
 			{
 				M_log.warn(".closeSession(): dbWrite failed");
@@ -1302,13 +1310,11 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		/**
 		 * Access a list of all open sessions.
-		 * 
+		 *
 		 * @return a List (UsageSession) of all open sessions, ordered by server, then by start (asc)
 		 */
 		public List getOpenSessions()
 		{
-			UsageSession rv = null;
-
 			// check the db
 			String statement = usageSessionServiceSql.getSakaiSessionSql2();
 			List sessions = sqlService().dbRead(statement, null, new SqlReader()
@@ -1317,17 +1323,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 				{
 					try
 					{
-						// read the UsageSession
-						String id = result.getString(1);
-						String server = result.getString(2);
-						String userId = result.getString(3);
-						String ip = result.getString(4);
-						String agent = result.getString(5);
-						Time start = timeService().newTime(result.getTimestamp(6, sqlService().getCal()).getTime());
-						Time end = timeService().newTime(result.getTimestamp(7, sqlService().getCal()).getTime());
-
-						UsageSession session = new BaseUsageSession(id, server, userId, ip, agent, start, end);
-						return session;
+						return new BaseUsageSession(result);
 					}
 					catch (SQLException ignore)
 					{
@@ -1338,5 +1334,33 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 			return sessions;
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public int closeSessionsOnInvalidServers(List<String> validServerIds) {
+		String statement = usageSessionServiceSql.getOpenSessionsOnInvalidServersSql(validServerIds);
+		if (M_log.isDebugEnabled()) M_log.debug("will get sessions with SQL=" + statement);
+		List<BaseUsageSession> sessions = sqlService().dbRead(statement, null, new SqlReader()
+		{
+			public Object readSqlResultRecord(ResultSet result)
+			{
+				try
+				{
+					return new BaseUsageSession(result);
+				}
+				catch (SQLException ignore)
+				{
+					return null;
+				}
+			}
+		});
+		
+		for (BaseUsageSession session : sessions)
+		{
+			if (M_log.isDebugEnabled()) M_log.debug("invalidating session " + session.getId());
+			session.invalidate();
+		}
+		
+		return sessions.size();
 	}
 }

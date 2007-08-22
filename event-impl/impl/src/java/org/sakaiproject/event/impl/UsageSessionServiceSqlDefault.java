@@ -20,21 +20,22 @@
  **********************************************************************************/
 package org.sakaiproject.event.impl;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.util.List;
+
 
 /**
  * methods for accessing session usage data in a database.
  */
 public class UsageSessionServiceSqlDefault implements UsageSessionServiceSql
 {
+	protected static final String USAGE_SESSION_COLUMNS = "SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END,SESSION_ACTIVE";
 
    /**
 	 * returns the sql statement which inserts a sakai session into the sakai_session table.
 	 */
 	public String getInsertSakaiSessionSql()
 	{
-		return "insert into SAKAI_SESSION (SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END) values (?, ?, ?, ?, ?, ?, ?)";
+		return "insert into SAKAI_SESSION (" + USAGE_SESSION_COLUMNS + ") values (?, ?, ?, ?, ?, ?, ?, ?)";
 	}
 
 	/**
@@ -42,17 +43,15 @@ public class UsageSessionServiceSqlDefault implements UsageSessionServiceSql
 	 */
 	public String getSakaiSessionSql1()
 	{
-		return "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END from SAKAI_SESSION where SESSION_ID = ?";
+		return "select " + USAGE_SESSION_COLUMNS + " from SAKAI_SESSION where SESSION_ID = ?";
 	}
 
 	/**
-	 * returns the sql statement which retrieves all the sakai sessions from the sakai_session table where the session start time equals the session
-	 * end time.
+	 * returns the sql statement which retrieves all the open sakai sessions from the sakai_session table.
 	 */
 	public String getSakaiSessionSql2()
 	{
-		return "select SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END " + "from   SAKAI_SESSION "
-				+ "where  SESSION_START = SESSION_END ORDER BY SESSION_SERVER ASC, SESSION_START ASC";
+		return "select " + USAGE_SESSION_COLUMNS + " from SAKAI_SESSION where SESSION_ACTIVE=1 ORDER BY SESSION_SERVER ASC, SESSION_START ASC";
 	}
 
 	/**
@@ -60,7 +59,7 @@ public class UsageSessionServiceSqlDefault implements UsageSessionServiceSql
 	 */
    public String getSakaiSessionSql3(String alias, String joinAlias, String joinTable, String joinColumn, String joinCriteria)
    {
-      return "select " + alias + ".SESSION_ID," + alias + ".SESSION_SERVER," + alias + ".SESSION_USER," + alias + ".SESSION_IP," + alias + ".SESSION_USER_AGENT," + alias + ".SESSION_START," + alias + ".SESSION_END " +
+      return "select " + alias + ".SESSION_ID," + alias + ".SESSION_SERVER," + alias + ".SESSION_USER," + alias + ".SESSION_IP," + alias + ".SESSION_USER_AGENT," + alias + ".SESSION_START," + alias + ".SESSION_END," + alias + ".SESSION_ACTIVE " +
              "from   SAKAI_SESSION " + alias                                    + " " +
              "inner join " + joinTable + " " + joinAlias                        + " " +
              "ON "    + alias + ".SESSION_ID = " + joinAlias + "." + joinColumn + " " +
@@ -72,6 +71,20 @@ public class UsageSessionServiceSqlDefault implements UsageSessionServiceSql
     */
 	public String getUpdateSakaiSessionSql()
 	{
-		return "update SAKAI_SESSION set SESSION_END = ? where SESSION_ID = ?";
+		return "update SAKAI_SESSION set SESSION_END = ?, SESSION_ACTIVE = ? where SESSION_ID = ?";
+	}
+
+	public String getOpenSessionsOnInvalidServersSql(List<String> validServerIds)
+	{
+		StringBuffer sql = new StringBuffer("select "+ USAGE_SESSION_COLUMNS + " from SAKAI_SESSION where SESSION_ACTIVE=1 and SESSION_SERVER not in (");
+		for (int i = 0; i < validServerIds.size(); i++)
+		{
+			String serverId = validServerIds.get(i);
+			if (i > 0) sql.append(",");
+			sql.append("'").append(serverId).append("'");
+		}
+		sql.append(")");
+		
+		return sql.toString();
 	}
 }

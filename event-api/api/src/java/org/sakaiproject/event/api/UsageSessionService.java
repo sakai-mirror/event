@@ -174,4 +174,14 @@ public interface UsageSessionService
 	 *
 	 */
 	void logout();
+	
+	/**
+	 * Close any orphaned usage session records left over after a server crash.
+	 * 
+	 * @param validServerIds collection of server ID strings which are currently valid; an assumption is
+	 * made that there will be fewer than 1000 active servers at any one time
+	 * 
+	 * @return number of invalid sessions closed
+	 */
+	int closeSessionsOnInvalidServers(List<String> validServerIds);
 }

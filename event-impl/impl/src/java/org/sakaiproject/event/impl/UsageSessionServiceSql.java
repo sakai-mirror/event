@@ -21,6 +21,8 @@
 
 package org.sakaiproject.event.impl;
 
+import java.util.List;
+
 /**
  * database methods.
  */
@@ -37,8 +39,7 @@ public interface UsageSessionServiceSql
 	String getSakaiSessionSql1();
 
 	/**
-	 * returns the sql statement which retrieves all the sakai sessions from the sakai_session table where the session start time equals the session
-	 * end time.
+	 * returns the sql statement which retrieves all the open sakai sessions from the sakai_session table.
 	 */
 	String getSakaiSessionSql2();
 
@@ -51,4 +52,9 @@ public interface UsageSessionServiceSql
 	 * returns the sql statement which updates a sakai session in the sakai_session table for a given session id.
 	 */
 	String getUpdateSakaiSessionSql();
+	
+	/**
+	 * @return the SQL statement which retrieves all supposedly active sessions associated with inactive servers
+	 */
+	String getOpenSessionsOnInvalidServersSql(List<String> validServerIds);
 }
