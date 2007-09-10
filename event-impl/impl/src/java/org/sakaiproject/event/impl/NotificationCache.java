@@ -21,6 +21,7 @@
 
 package org.sakaiproject.event.impl;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -34,9 +35,10 @@ import org.apache.commons.logging.LogFactory;
 import org.sakaiproject.event.api.Event;
 import org.sakaiproject.event.api.Notification;
 import org.sakaiproject.event.cover.EventTrackingService;
+import org.sakaiproject.memory.api.Cache;
 import org.sakaiproject.memory.api.CacheRefresher;
 import org.sakaiproject.memory.api.Cacher;
-import org.sakaiproject.memory.cover.MemoryService;
+import org.sakaiproject.memory.cover.MemoryServiceLocator;
 
 /**
  * <p>
@@ -46,13 +48,13 @@ import org.sakaiproject.memory.cover.MemoryService;
  * When the object expires, the cache calls upon a CacheRefresher to update the key's value. The update is done in a separate thread.
  * </p>
  */
-public class NotificationCache implements Cacher, Observer
-{
+public class NotificationCache implements Cacher, Observer {
 	/** Our logger. */
 	private static Log M_log = LogFactory.getLog(NotificationCache.class);
 
 	/** Map holding cached entries (by reference). */
-	protected Map m_map = null;
+//	protected Map m_map = null;
+	private Cache cache = null;
 
 	/** Map of notification function to Set of notifications - same objects as in m_map. */
 	protected Map m_functionMap = null;
@@ -73,7 +75,7 @@ public class NotificationCache implements Cacher, Observer
 	protected boolean m_holdEventProcessing = false;
 
 	/** The events we are holding for later processing. */
-	protected List m_heldEvents = new Vector();
+	protected List m_heldEvents = new Vector();	
 
 	/**
 	 * Construct the Cache. Attempts to keep complete on Event notification by calling the refresher.
@@ -85,11 +87,10 @@ public class NotificationCache implements Cacher, Observer
 	 */
 	public NotificationCache(CacheRefresher refresher, String pattern)
 	{
-		m_map = new HashMap();
+		cache = MemoryServiceLocator.getInstance().newCache(
+				"org.sakaiproject.event.api.NotificationService.cache",
+				refresher, pattern); // TODO check logic with proxied class
 		m_functionMap = new HashMap();
-
-		// register as a cacher
-		MemoryService.registerCacher(this);
 
 		m_refresher = refresher;
 		m_resourcePattern = pattern;
@@ -100,51 +101,15 @@ public class NotificationCache implements Cacher, Observer
 	} // NotificationCache
 
 	/**
-	 * Clean up.
+	 * Clear all entries.
 	 */
-	protected void finalize()
+	public synchronized void clear()
 	{
-		// unregister as a cacher
-		MemoryService.unregisterCacher(this);
+		cache.clear();
+		m_functionMap.clear();
+		m_complete = false;
 
-		// ungister to get events
-		EventTrackingService.deleteObserver(this);
-
-	} // finalize
-
-	/**
-	 * Cache an object.
-	 * 
-	 * @param key
-	 *        The key with which to find the object.
-	 * @param payload
-	 *        The object to cache.
-	 * @param duration
-	 *        The time to cache the object (seconds).
-	 */
-	public synchronized void put(Notification payload)
-	{
-		if (disabled()) return;
-
-		m_map.put(payload.getReference(), payload);
-
-		// put in m_functionMap, too, for each function of the notification
-		List funcs = payload.getFunctions();
-		for (Iterator iFuncs = funcs.iterator(); iFuncs.hasNext();)
-		{
-			String func = (String) iFuncs.next();
-
-			List notifications = (List) m_functionMap.get(func);
-			if (notifications == null)
-			{
-				notifications = new Vector();
-				m_functionMap.put(func, notifications);
-			}
-
-			if (!notifications.contains(payload)) notifications.add(payload);
-		}
-
-	} // cache
+	} // clear
 
 	/**
 	 * Test for an entry in the cache.
@@ -153,19 +118,56 @@ public class NotificationCache implements Cacher, Observer
 	 *        The cache key.
 	 * @return true if the key maps to an entry, false if not.
 	 */
-	public synchronized boolean containsKey(Object key)
+	public boolean containsKey(Object key)
 	{
-		if (disabled()) return false;
-
-		// is it there?
-		if (m_map.containsKey(key))
-		{
-			return true;
-		}
-
-		return false;
-
+		return cache.containsKey(key);
+		
 	} // containsKey
+
+	/**
+	 * Disable the cache.
+	 */
+	public void disable()
+	{
+		m_disabled = true;
+		EventTrackingService.deleteObserver(this);
+		clear();
+
+	} // disable
+
+	/**
+	 * Is the cache disabled?
+	 * 
+	 * @return true if the cache is disabled, false if it is enabled.
+	 */
+	public boolean disabled()
+	{
+		return m_disabled;
+
+	} // disabled
+
+	/**
+	 * Enable the cache.
+	 */
+	public void enable()
+	{
+		m_disabled = false;
+		EventTrackingService.addPriorityObserver(this);
+
+	} // enable
+
+	/**
+	 * Clean up.
+	 */
+	protected void finalize()
+	{
+		// unregister as a cacher
+		MemoryServiceLocator.getInstance().unregisterCacher(this);
+
+		// unregister to get events
+		EventTrackingService.deleteObserver(this);
+
+	} // finalize
 
 	/**
 	 * Get the entry associated with the key, or null if not there
@@ -174,11 +176,11 @@ public class NotificationCache implements Cacher, Observer
 	 *        The cache key.
 	 * @return The entry associated with the key, or null if the a null is cached, or the key is not found (Note: use containsKey() to remove this ambiguity).
 	 */
-	public synchronized Notification get(Object key)
+	public Notification get(Object key)
 	{
 		if (disabled()) return null;
 
-		return (Notification) m_map.get(key);
+		return (Notification) cache.get(key);
 
 	} // get
 
@@ -192,21 +194,10 @@ public class NotificationCache implements Cacher, Observer
 		List rv = new Vector();
 
 		if (disabled()) return rv;
-		if (m_map.isEmpty()) return rv;
-
-		// get the keys as of now
-		Object[] keys = m_map.keySet().toArray();
-
-		// for each entry in the cache
-		for (int i = 0; i < keys.length; i++)
+		List allObjectsInCache = cache.getAll();
+		for (Object object : allObjectsInCache) 
 		{
-			Object payload = m_map.get(keys[i]);
-
-			// skip nulls
-			if (payload == null) continue;
-
-			// we'll take it
-			rv.add(payload);
+			if(object != null && object instanceof Notification) rv.add(object);
 		}
 
 		return rv;
@@ -227,119 +218,81 @@ public class NotificationCache implements Cacher, Observer
 	} // getAll
 
 	/**
+	 * Return a description of the cacher.
+	 * 
+	 * @return The cacher's description.
+	 */
+	public String getDescription()
+	{
+		StringBuilder buf = new StringBuilder();
+		buf.append("NotificationCache:");
+		if (m_disabled)
+		{
+			buf.append(" disabled:");
+		}
+		if (m_complete)
+		{
+			buf.append(" complete:");
+		}
+		if (m_resourcePattern != null)
+		{
+			buf.append(" pattern: " + m_resourcePattern);
+		}
+		if (m_refresher != null)
+		{
+			buf.append(" refresher: " + m_refresher.toString());
+		}
+
+		return buf.toString();
+	}
+
+	/**
+	 * Get all the keys, each modified to remove the resourcePattern prefix. Note: only works with String keys.
+	 * 
+	 * @return The List of keys converted from references to ids (String).
+	 */
+	public List getIds()
+	{
+		//FIXME Need to create a separate cache for Notifications...
+		return Collections.EMPTY_LIST;
+//		List rv = new Vector();
+//
+//		List keys = new Vector();
+//		keys.addAll(m_map.keySet());
+//
+//		Iterator it = keys.iterator();
+//		while (it.hasNext())
+//		{
+//			String key = (String) it.next();
+//			int i = key.indexOf(m_resourcePattern);
+//			if (i != -1) key = key.substring(i + m_resourcePattern.length());
+//			rv.add(key);
+//		}
+//
+//		return rv;
+
+	} // getKeys
+
+	/**
 	 * Get all the keys
 	 * 
 	 * @return The List of key values (Object).
 	 */
 	public List getKeys()
 	{
-		List rv = new Vector();
-		rv.addAll(m_map.keySet());
-		return rv;
+		return cache.getKeys();
 
 	} // getKeys
 
 	/**
-	 * Get all the keys, eache modified to remove the resourcePattern prefix. Note: only works with String keys.
+	 * Return the size of the cacher - indicating how much memory in use.
 	 * 
-	 * @return The List of keys converted from references to ids (String).
+	 * @return The size of the cacher.
 	 */
-	public List getIds()
+	public long getSize()
 	{
-		List rv = new Vector();
-
-		List keys = new Vector();
-		keys.addAll(m_map.keySet());
-
-		Iterator it = keys.iterator();
-		while (it.hasNext())
-		{
-			String key = (String) it.next();
-			int i = key.indexOf(m_resourcePattern);
-			if (i != -1) key = key.substring(i + m_resourcePattern.length());
-			rv.add(key);
-		}
-
-		return rv;
-
-	} // getKeys
-
-	/**
-	 * Clear all entries.
-	 */
-	public synchronized void clear()
-	{
-		m_map.clear();
-		m_functionMap.clear();
-		m_complete = false;
-
-	} // clear
-
-	/**
-	 * Remove this entry from the cache.
-	 * 
-	 * @param key
-	 *        The cache key.
-	 */
-	public synchronized void remove(Object key)
-	{
-		if (disabled()) return;
-
-		Notification payload = (Notification) m_map.get(key);
-		m_map.remove(key);
-
-		if (payload == null) return;
-
-		// remove it from the function map for each function
-		List funcs = payload.getFunctions();
-		for (Iterator iFuncs = funcs.iterator(); iFuncs.hasNext();)
-		{
-			String func = (String) iFuncs.next();
-
-			List notifications = (List) m_functionMap.get(func);
-			if (notifications != null)
-			{
-				notifications.remove(payload);
-				if (notifications.isEmpty())
-				{
-					m_functionMap.remove(func);
-				}
-			}
-		}
-
-	} // remove
-
-	/**
-	 * Disable the cache.
-	 */
-	public void disable()
-	{
-		m_disabled = true;
-		EventTrackingService.deleteObserver(this);
-		clear();
-
-	} // disable
-
-	/**
-	 * Enable the cache.
-	 */
-	public void enable()
-	{
-		m_disabled = false;
-		EventTrackingService.addPriorityObserver(this);
-
-	} // enable
-
-	/**
-	 * Is the cache disabled?
-	 * 
-	 * @return true if the cache is disabled, false if it is enabled.
-	 */
-	public boolean disabled()
-	{
-		return m_disabled;
-
-	} // disabled
+		return cache.getSize();
+	}
 
 	/**
 	 * Are we complete?
@@ -351,17 +304,6 @@ public class NotificationCache implements Cacher, Observer
 		if (disabled()) return false;
 
 		return m_complete;
-
-	} // isComplete
-
-	/**
-	 * Set the cache to be complete, containing all possible entries.
-	 */
-	public void setComplete()
-	{
-		if (disabled()) return;
-
-		m_complete = true;
 
 	} // isComplete
 
@@ -391,9 +333,73 @@ public class NotificationCache implements Cacher, Observer
 
 	} // holdEvents
 
-	/**********************************************************************************************************************************************************************************************************************************************************
-	 * Cacher implementation
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	/**
+	 * Cache an object.
+	 * 
+	 * @param key
+	 *        The key with which to find the object.
+	 * @param payload
+	 *        The object to cache.
+	 * @param duration
+	 *        The time to cache the object (seconds).
+	 */
+	public synchronized void put(Notification payload)
+	{
+		if (disabled()) return;
+
+		cache.put(payload.getReference(), payload);
+
+		// put in m_functionMap, too, for each function of the notification
+		List funcs = payload.getFunctions();
+		for (Iterator iFuncs = funcs.iterator(); iFuncs.hasNext();)
+		{
+			String func = (String) iFuncs.next();
+
+			List notifications = (List) m_functionMap.get(func);
+			if (notifications == null)
+			{
+				notifications = new Vector();
+				m_functionMap.put(func, notifications);
+			}
+
+			if (!notifications.contains(payload)) notifications.add(payload);
+		}
+
+	} // cache
+
+	/**
+	 * Remove this entry from the cache.
+	 * 
+	 * @param key
+	 *        The cache key.
+	 */
+	public synchronized void remove(Object key)
+	{
+		if (disabled()) return;
+
+		Notification payload = (Notification) cache.get(key);
+		cache.remove(key);
+
+		if (payload == null) return;
+
+		// remove it from the function map for each function
+		List funcs = payload.getFunctions();
+		for (Iterator iFuncs = funcs.iterator(); iFuncs.hasNext();)
+		{
+			String func = (String) iFuncs.next();
+
+			List notifications = (List) m_functionMap.get(func);
+			if (notifications != null)
+			{
+				notifications.remove(payload);
+				if (notifications.isEmpty())
+				{
+					m_functionMap.remove(func);
+				}
+			}
+		}
+
+	} // remove
 
 	/**
 	 * Clear out as much as possible anything cached; re-sync any cache that is needed to be kept.
@@ -405,47 +411,15 @@ public class NotificationCache implements Cacher, Observer
 	} // resetCache
 
 	/**
-	 * Return the size of the cacher - indicating how much memory in use.
-	 * 
-	 * @return The size of the cacher.
+	 * Set the cache to be complete, containing all possible entries.
 	 */
-	public long getSize()
+	public void setComplete()
 	{
-		return m_map.size();
-	}
+		if (disabled()) return;
 
-	/**
-	 * Return a description of the cacher.
-	 * 
-	 * @return The cacher's description.
-	 */
-	public String getDescription()
-	{
-		StringBuffer buf = new StringBuffer();
-		buf.append("NotificationCache:");
-		if (m_disabled)
-		{
-			buf.append(" disabled:");
-		}
-		if (m_complete)
-		{
-			buf.append(" complete:");
-		}
-		if (m_resourcePattern != null)
-		{
-			buf.append(" pattern: " + m_resourcePattern);
-		}
-		if (m_refresher != null)
-		{
-			buf.append(" refresher: " + m_refresher.toString());
-		}
+		m_complete = true;
 
-		return buf.toString();
-	}
-
-	/**********************************************************************************************************************************************************************************************************************************************************
-	 * Observer implementation
-	 *********************************************************************************************************************************************************************************************************************************************************/
+	} // isComplete
 
 	/**
 	 * This method is called whenever the observed object is changed. An application calls an <tt>Observable</tt> object's <code>notifyObservers</code> method to have all the object's observers notified of the change. default implementation is to
@@ -498,7 +472,7 @@ public class NotificationCache implements Cacher, Observer
 
 		// do we have this in our cache?
 		Object oldValue = get(key);
-		if (m_map.containsKey(key))
+		if (cache.containsKey(key))
 		{
 			// invalidate our copy
 			remove(key);
@@ -525,6 +499,4 @@ public class NotificationCache implements Cacher, Observer
 		}
 
 	} // continueUpdate
-
-} // Cache
-
+}
