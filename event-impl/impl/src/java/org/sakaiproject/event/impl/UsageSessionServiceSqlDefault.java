@@ -76,7 +76,7 @@ public class UsageSessionServiceSqlDefault implements UsageSessionServiceSql
 
 	public String getOpenSessionsOnInvalidServersSql(List<String> validServerIds)
 	{
-		StringBuffer sql = new StringBuffer("select "+ USAGE_SESSION_COLUMNS + " from SAKAI_SESSION where SESSION_ACTIVE=1 and SESSION_SERVER not in (");
+		StringBuilder sql = new StringBuilder("select "+ USAGE_SESSION_COLUMNS + " from SAKAI_SESSION where SESSION_ACTIVE=1 and SESSION_SERVER not in (");
 		for (int i = 0; i < validServerIds.size(); i++)
 		{
 			String serverId = validServerIds.get(i);

@@ -210,7 +210,7 @@ public class EmailNotification implements NotificationAction
 			// TODO: \n or newLine? text or htlm? -ggolden
 
 			// modify the message to add header lines (we don't add a tag for each message, the digest adds a single one when sent)
-			StringBuffer messageForDigest = new StringBuffer();
+			StringBuilder messageForDigest = new StringBuilder();
 
 			String item = findHeader("From", headers);
 			if (item != null) messageForDigest.append(item);
@@ -256,7 +256,7 @@ public class EmailNotification implements NotificationAction
 	 */
 	protected String getMessage(Event event)
 	{	
-		StringBuffer message = new StringBuffer();
+		StringBuilder message = new StringBuilder();
 		message.append(MIME_ADVISORY);
 		message.append(BOUNDARY_LINE);
 		message.append(plainTextHeaders());
@@ -283,7 +283,7 @@ public class EmailNotification implements NotificationAction
 	}
 	
 	protected String htmlPreamble() {
-		StringBuffer buf = new StringBuffer();
+		StringBuilder buf = new StringBuilder();
 		buf.append("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n");
 		buf.append("    \"http://www.w3.org/TR/html4/loose.dtd\">\n");
 		buf.append("<html>\n");
