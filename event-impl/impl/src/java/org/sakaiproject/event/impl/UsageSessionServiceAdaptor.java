@@ -704,6 +704,10 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			{
 				m_browserId = MAC_MZ;
 			}
+			else if (agent.startsWith("Mozilla") && agent.indexOf("Linux") >= 0)
+			{
+				m_browserId = LIN_MZ;
+			}
 			else
 			{
 				m_browserId = UNKNOWN;

@@ -46,6 +46,8 @@ public interface UsageSession extends Comparable
 	public static final String WIN_NN = "Win-NetscapeNavigator";
 
 	public static final String WIN_MZ = "Win-Mozilla";
+	
+	public static final String LIN_MZ = "Lin-Mozilla";
 
 	public static final String UNKNOWN = "UnknownBrowser";
 
