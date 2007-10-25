@@ -1109,7 +1109,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			fields[1] = session.getServer();
 			fields[2] = session.getUserId();
 			fields[3] = session.getIpAddress();
-			fields[4] = session.getUserAgent();
+			// UFP: start
+			fields[4] = session.getUserAgent().length() > 255? session.getUserAgent().substring(0, 255) : session.getUserAgent();
+			// UFP: end
 			fields[5] = session.getStart();
 			fields[6] = session.getEnd();
 
