@@ -1168,13 +1168,15 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			// and store it in the db
 			String statement = usageSessionServiceSql.getInsertSakaiSessionSql();
 
+			String userAgent = session.getUserAgent().length() > 255? session.getUserAgent().substring(0, 255) : session.getUserAgent();
+
 			// process the insert
 			boolean ok = sqlService().dbWrite(statement, new Object[] {
 				session.getId(),
 				session.getServer(),
 				session.getUserId(),
 				session.getIpAddress(),
-				session.getUserAgent(),
+				userAgent,
 				session.getStart(),
 				session.getEnd(),
 				session.isClosed() ? null : new Boolean(true)
