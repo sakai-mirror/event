@@ -59,7 +59,7 @@ public class UsageSessionServiceSqlDefault implements UsageSessionServiceSql
 	 */
    public String getSakaiSessionSql3(String alias, String joinAlias, String joinTable, String joinColumn, String joinCriteria)
    {
-      return "select " + alias + ".SESSION_ID," + alias + ".SESSION_SERVER," + alias + ".SESSION_USER," + alias + ".SESSION_IP," + alias + ".SESSION_USER_AGENT," + alias + ".SESSION_START," + alias + ".SESSION_END," + alias + ".SESSION_ACTIVE " +
+      return "select " + alias + ".SESSION_ID," + alias + ".SESSION_SERVER," + alias + ".SESSION_USER," + alias + ".SESSION_IP," + alias + ".SESSION_HOSTNAME," + alias + ".SESSION_USER_AGENT," + alias + ".SESSION_START," + alias + ".SESSION_END," + alias + ".SESSION_ACTIVE " +
              "from   SAKAI_SESSION " + alias                                    + " " +
              "inner join " + joinTable + " " + joinAlias                        + " " +
              "ON "    + alias + ".SESSION_ID = " + joinAlias + "." + joinColumn + " " +
