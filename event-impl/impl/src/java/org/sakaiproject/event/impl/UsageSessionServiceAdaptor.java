@@ -21,6 +21,8 @@
 
 package org.sakaiproject.event.impl;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -243,9 +245,25 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 						+ userId);
 			}
 
+			// resolve the hostname if required
+			String hostName = null;
+				
+			if (serverConfigurationService().getBoolean("session.resolvehostname", false)) 
+			{
+				try
+				{
+					InetAddress inet = InetAddress.getByName(remoteAddress);
+					hostName = inet.getHostName();
+				}
+				catch (UnknownHostException e)
+				{
+					M_log.debug("Cannot resolve host address " + remoteAddress);
+				}
+			}
+			
 			// create the usage session and bind it to the session
 			session = new BaseUsageSession(idManager().createUuid(), serverConfigurationService().getServerIdInstance(), userId,
-					remoteAddress, userAgent);
+					remoteAddress, hostName, userAgent);
 
 			// store
 			if (m_storage.addSession(session))
@@ -593,6 +611,9 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		/** The IP Address from which this session originated. */
 		protected String m_ip = null;
 
+		/** The Hostname from which this session originated. */
+		protected String m_hostname = null;
+		
 		/** The User Agent string describing the browser used in this session. */
 		protected String m_userAgent = null;
 
@@ -625,10 +646,11 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			m_server = result.getString(2);
 			m_user = result.getString(3);
 			m_ip = result.getString(4);
-			m_userAgent = result.getString(5);
-			m_start = timeService().newTime(result.getTimestamp(6, sqlService().getCal()).getTime());
-			m_end = timeService().newTime(result.getTimestamp(7, sqlService().getCal()).getTime());
-			Boolean isActive = result.getBoolean(8);
+			m_hostname = result.getString(5);
+			m_userAgent = result.getString(6);
+			m_start = timeService().newTime(result.getTimestamp(7, sqlService().getCal()).getTime());
+			m_end = timeService().newTime(result.getTimestamp(8, sqlService().getCal()).getTime());
+			Boolean isActive = result.getBoolean(9);
 			m_active = ((isActive != null) && isActive.booleanValue());
 			setBrowserId(m_userAgent);
 		}
@@ -647,12 +669,13 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 		 * @param agent
 		 *        The User Agent string describing the browser used in this session.
 		 */
-		public BaseUsageSession(String id, String server, String user, String address, String agent)
+		public BaseUsageSession(String id, String server, String user, String address, String hostname, String agent)
 		{
 			m_id = id;
 			m_server = server;
 			m_user = user;
 			m_ip = address;
+			m_hostname = hostname;
 			m_userAgent = agent;
 			m_start = timeService().newTime();
 			m_end = m_start;
@@ -798,6 +821,14 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			return m_ip;
 		}
 
+		/**
+		 * @inheritDoc
+		 */
+		public String getHostName()
+		{
+			return m_hostname;
+		}
+		
 		/**
 		 * @inheritDoc
 		 */
@@ -1176,6 +1207,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 				session.getServer(),
 				session.getUserId(),
 				session.getIpAddress(),
+				session.getHostName(),
 				userAgent,
 				session.getStart(),
 				session.getEnd(),

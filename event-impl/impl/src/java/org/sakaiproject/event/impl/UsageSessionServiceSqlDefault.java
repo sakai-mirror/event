@@ -28,14 +28,14 @@ import java.util.List;
  */
 public class UsageSessionServiceSqlDefault implements UsageSessionServiceSql
 {
-	protected static final String USAGE_SESSION_COLUMNS = "SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_USER_AGENT,SESSION_START,SESSION_END,SESSION_ACTIVE";
+	protected static final String USAGE_SESSION_COLUMNS = "SESSION_ID,SESSION_SERVER,SESSION_USER,SESSION_IP,SESSION_HOSTNAME,SESSION_USER_AGENT,SESSION_START,SESSION_END,SESSION_ACTIVE";
 
    /**
 	 * returns the sql statement which inserts a sakai session into the sakai_session table.
 	 */
 	public String getInsertSakaiSessionSql()
 	{
-		return "insert into SAKAI_SESSION (" + USAGE_SESSION_COLUMNS + ") values (?, ?, ?, ?, ?, ?, ?, ?)";
+		return "insert into SAKAI_SESSION (" + USAGE_SESSION_COLUMNS + ") values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	}
 
 	/**
