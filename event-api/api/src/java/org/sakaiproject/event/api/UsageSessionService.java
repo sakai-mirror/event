@@ -41,9 +41,6 @@ public interface UsageSessionService
 	/** Name for the event of logging out. */
 	public static final String EVENT_LOGOUT = "user.logout";
 
-	/** Name for the global cookie to store the session */
-	public static final String SAKAI_SESSION_COOKIE = "sakai.session";
-
 	/**
 	 * Name for the session key to retrieve the UsageSession.
 	 * Note: This must be a constant and not based on classname - it must stay the same regardless of the name of the implementing class.
