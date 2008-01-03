@@ -1201,7 +1201,11 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 			String userAgent = session.getUserAgent().length() > 255? session.getUserAgent().substring(0, 255) : session.getUserAgent();
 			
-			String hostName = session.getHostName().length() > 255? session.getHostName().substring(0, 255) : session.getHostName();
+			String hostName = session.getHostName();
+			
+			if (hostName != null && hostName.length() > 255) {
+				hostName = hostName.substring(0, 255);
+			}
 
 			// process the insert
 			boolean ok = sqlService().dbWrite(statement, new Object[] {
