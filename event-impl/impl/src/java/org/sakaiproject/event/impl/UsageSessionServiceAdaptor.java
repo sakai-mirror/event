@@ -1200,6 +1200,8 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			String statement = usageSessionServiceSql.getInsertSakaiSessionSql();
 
 			String userAgent = session.getUserAgent().length() > 255? session.getUserAgent().substring(0, 255) : session.getUserAgent();
+			
+			String hostName = session.getHostName().length() > 255? session.getHostName().substring(0, 255) : session.getHostName();
 
 			// process the insert
 			boolean ok = sqlService().dbWrite(statement, new Object[] {
@@ -1207,7 +1209,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 				session.getServer(),
 				session.getUserId(),
 				session.getIpAddress(),
-				session.getHostName(),
+				hostName,
 				userAgent,
 				session.getStart(),
 				session.getEnd(),
