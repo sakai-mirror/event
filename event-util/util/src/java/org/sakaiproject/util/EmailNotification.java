@@ -176,6 +176,15 @@ public class EmailNotification implements NotificationAction
 		List headers = getHeaders(event);
 		String message = getMessage(event);
 
+		if ( "true".equals(ServerConfigurationService.getString("email.precedence.bulk", "false")) )  
+		{
+			String bulkFlag = "Precedence: bulk";
+			// Add presedence:bulk to mark notifs as a type of bulk mail
+			// This allows some email systems to deal with it correctly,
+			// e.g. they won't send OOO replies / vacation messages
+			headers.add(bulkFlag);
+		}
+
 		// from = "\"" + ServerConfigurationService.getString("ui.service", "Sakai") + "\"<no-reply@" + ServerConfigurationService.getServerName() + ">";
 
 		// some info we will need to add the tag for immediate recipients
