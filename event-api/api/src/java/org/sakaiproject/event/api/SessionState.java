@@ -22,14 +22,13 @@
 package org.sakaiproject.event.api;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * <p>
- * SessionState is a collection of named attributes associated with the current session. SessionState implements Map, but the Map methods should only be used to get attributes, not to set or remove attributes.
+ * SessionState is a collection of named attributes associated with the current session.
  * </p>
  */
-public interface SessionState extends Map
+public interface SessionState
 {
 	/**
 	 * Access the named attribute.
