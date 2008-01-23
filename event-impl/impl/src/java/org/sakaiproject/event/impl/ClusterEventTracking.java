@@ -430,6 +430,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 		m_threadStop = false;
 
 		m_thread = new Thread(this, getClass().getName());
+		m_thread.setDaemon(true);
 		m_thread.start();
 	}
 
