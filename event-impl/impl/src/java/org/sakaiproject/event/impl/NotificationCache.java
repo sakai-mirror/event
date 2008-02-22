@@ -73,6 +73,7 @@ public class NotificationCache implements Cacher, Observer {
 
 	/** If true, we are going to hold any events we see in the m_heldEvents list for later processing. */
 	protected boolean m_holdEventProcessing = false;
+	private Object m_holdEventProcessingLock = new Object();
 
 	/** The events we are holding for later processing. */
 	protected List m_heldEvents = new Vector();	
@@ -447,10 +448,13 @@ public class NotificationCache implements Cacher, Observer {
 		if (key != null && !key.startsWith(m_resourcePattern)) return;
 
 		// if we are holding event processing
-		if (m_holdEventProcessing)
+		synchronized (m_holdEventProcessingLock)
 		{
-			m_heldEvents.add(event);
-			return;
+			if (m_holdEventProcessing)
+			{
+				m_heldEvents.add(event);
+				return;
+			}			
 		}
 
 		continueUpdate(event);
