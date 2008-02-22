@@ -208,7 +208,7 @@ public class EmailNotification implements NotificationAction
 			}
 
 			// add the tag to the end message
-			String messageForImmediates = message + getTag(newline, title);
+			String messageForImmediates = message + getTag(newline, title, isBodyHTML);
 
 			// send it: from: from, to: immediates, body: messageForImmediates, headers: headers
 			EmailService.sendToUsers(immediate, headers, messageForImmediates);
@@ -321,7 +321,7 @@ public class EmailNotification implements NotificationAction
 	 *        The title string.
 	 * @return The message tag.
 	 */
-	protected String getTag(String newline, String title)
+	protected String getTag(String newline, String title, boolean shouldUseHtml)
 	{
 		return "";
 	}
