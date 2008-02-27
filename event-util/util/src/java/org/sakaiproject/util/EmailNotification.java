@@ -203,12 +203,12 @@ public class EmailNotification implements NotificationAction
 			StringBuilder messageForDigest = new StringBuilder();
 
 			String item = findHeader("From", headers);
-			if (item != null) messageForDigest.append(item);
+			if (item != null) messageForDigest.append(item+"\n");
 
 			item = findHeader("Date", headers);
 			if (item != null)
 			{
-				messageForDigest.append(item);
+				messageForDigest.append(item+"\n");
 			}
 			else
 			{
@@ -216,13 +216,13 @@ public class EmailNotification implements NotificationAction
 			}
 
 			item = findHeader("To", headers);
-			if (item != null) messageForDigest.append(item);
+			if (item != null) messageForDigest.append(item+"\n");
 
 			item = findHeader("Cc", headers);
-			if (item != null) messageForDigest.append(item);
+			if (item != null) messageForDigest.append(item+"\n");
 
 			item = findHeader("Subject", headers);
-			if (item != null) messageForDigest.append(item);
+			if (item != null) messageForDigest.append(item+"\n");
 
 			// and the body
 			messageForDigest.append("\n");
