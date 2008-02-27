@@ -174,7 +174,6 @@ public class EmailNotification implements NotificationAction
 
 		// get the email elements - headers (including to: from: subject: date: and anything else we want in the message) and body
 		List headers = getHeaders(event);
-		String message = getMessage(event);
 
 		if ( "true".equals(ServerConfigurationService.getString("email.precedence.bulk", "false")) )  
 		{
@@ -194,6 +193,8 @@ public class EmailNotification implements NotificationAction
 		// for the immediates
 		if (immediate.size() > 0)
 		{
+			String message = getMessage(event);
+			
 			// get a site title: use either the configured site, or if not configured, the site (context) of the resource
 			Reference ref = EntityManager.newReference(event.getResource());
 			String title = (getSite() != null) ? getSite() : ref.getContext();
@@ -216,7 +217,7 @@ public class EmailNotification implements NotificationAction
 		// for the digesters
 		if (digest.size() > 0)
 		{
-			// TODO: \n or newLine? text or htlm? -ggolden
+			String message = plainTextContent();
 
 			// modify the message to add header lines (we don't add a tag for each message, the digest adds a single one when sent)
 			StringBuilder messageForDigest = new StringBuilder();
