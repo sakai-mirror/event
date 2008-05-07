@@ -22,13 +22,17 @@
 package org.sakaiproject.event.impl;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sakaiproject.authz.api.SecurityAdvisor;
+import org.sakaiproject.authz.api.SecurityService;
 import org.sakaiproject.event.api.Event;
 import org.sakaiproject.event.api.EventTrackingService;
+import org.sakaiproject.event.api.EventVoter;
 import org.sakaiproject.event.api.NotificationService;
 import org.sakaiproject.event.api.UsageSession;
 import org.sakaiproject.event.api.UsageSessionService;
@@ -54,6 +58,8 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 
 	/** An observable object helper for see-only-local-events observers. */
 	protected MyObservable m_localObservableHelper = new MyObservable();
+
+	protected ArrayList<EventVoter> eventVoters = new ArrayList<EventVoter>();
 
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Observable implementation
@@ -130,6 +136,11 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 	 */
 	protected abstract SessionManager sessionManager();
 
+	/**
+	 * @return the SecurityService collaborator.
+	 */
+	protected abstract SecurityService securityService();
+
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
 	 *********************************************************************************************************************************************************************************************************************************************************/
@@ -196,12 +207,12 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 	 */
 	public void post(Event event)
 	{
+		BaseEvent be = ensureBaseEvent(event);
 		// get the session id or user id
 		String id = usageSessionService().getSessionId();
 		if (id != null)
 		{
-			((BaseEvent) event).setSessionId(id);
-			postEvent(event);
+			be.setSessionId(id);
 		}
 
 		// post for the session "thread" user
@@ -213,9 +224,12 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 				id = "?";
 			}
 
-			((BaseEvent) event).setUserId(id);
-			postEvent(event);
+			be.setUserId(id);
 		}
+
+		// poll the voters for response
+		if (pollVoters(be))
+			postEvent(be);
 	}
 
 	/**
@@ -228,11 +242,14 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 	 */
 	public void post(Event event, UsageSession session)
 	{
+		BaseEvent be = ensureBaseEvent(event);
 		String id = "?";
 		if (session != null) id = session.getId();
 
-		((BaseEvent) event).setSessionId(id);
-		postEvent(event);
+		be.setSessionId(id);
+
+		if (pollVoters(be))
+			postEvent(be);
 	}
 
 	/**
@@ -245,11 +262,74 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 	 */
 	public void post(Event event, User user)
 	{
+		BaseEvent be = ensureBaseEvent(event);
 		String id = "?";
 		if (user != null) id = user.getId();
 
-		((BaseEvent) event).setUserId(id);
-		postEvent(event);
+		be.setUserId(id);
+
+		// establish a security advisor if the user id is set on the event.  this ensures that
+		// false permission exceptions aren't encountered during an event refiring.
+		boolean useAdvisor = false;
+		if (be.getUserId() != null)
+		{
+			useAdvisor = true;
+			securityService().pushAdvisor(newResourceAdvisor(be.getUserId()));
+		}
+
+		// poll the voters for response
+		if (pollVoters(be))
+			postEvent(be);
+
+		// if an advisor was used, pop it off.
+		if (useAdvisor)
+			securityService().popAdvisor();
+	}
+
+	/**
+	 * Ensure that the provided event is an instance of BaseEvent.  If not, create a new BaseEvent
+	 * and transfer state.
+	 * 
+	 * @param e
+	 * @return
+	 */
+	private BaseEvent ensureBaseEvent(Event e)
+	{
+		BaseEvent event = null;
+		if (e instanceof BaseEvent)
+		{
+			event = (BaseEvent) e;
+		}
+		else
+		{
+			event = new BaseEvent(e.getEvent(), e.getResource(), e.getModify(), e.getPriority());
+			event.setSessionId(e.getSessionId());
+			event.setUserId(e.getUserId());
+		}
+		return event;
+	}
+
+	/**
+	 * Refired events can occur under a different user and session than was originally available.
+	 * To make sure permission exceptions aren't falsely encountered, a security advisor should be
+	 * pushed on the stack to recreate the correct environment for security checks.
+	 *  
+	 * @param userId
+	 */
+	private SecurityAdvisor newResourceAdvisor(final String eventUserId)
+	{
+		// security advisor is needed if an event is refired.  the refired event is under the
+		// auspices of the job scheduler user and needs to be advised by the original user.
+		return new SecurityAdvisor()
+		{
+			public SecurityAdvice isAllowed(String userId, String function, String reference)
+			{
+				SecurityAdvice sa = SecurityAdvice.PASS;
+				if (userId.equals(eventUserId))
+					sa = SecurityAdvice.ALLOWED;
+				return sa;
+			}
+		};
 	}
 
 	/**
@@ -308,6 +388,49 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 		m_observableHelper.deleteObserver(observer);
 		m_priorityObservableHelper.deleteObserver(observer);
 		m_localObservableHelper.deleteObserver(observer);
+	}
+
+	/**
+	 * Add an event voter.
+	 * 
+	 * @param voter
+	 *            The voter to add.
+	 */
+	public void addVoter(EventVoter voter)
+	{
+		eventVoters.add(voter);
+	}
+
+	/**
+	 * Delete an event voter.
+	 * 
+	 * @param voter
+	 *            The voter to delete.
+	 */
+	public void deleteVoter(EventVoter voter)
+	{
+		eventVoters.remove(voter);
+	}
+
+	/**
+	 * Check the event voters to see if anyone votes against an event. Any 'nay' votes will stop an
+	 * event from processing.
+	 * 
+	 * @param event
+	 * @return
+	 */
+	protected boolean pollVoters(Event event)
+	{
+		boolean result = true;
+		for (EventVoter voter: eventVoters)
+		{
+			result &= voter.vote(event);
+
+			// since the vote has to be unanimous, no need in waiting after a 'nay'
+			if (!result)
+				break;
+		}
+		return result;
 	}
 
 	/**********************************************************************************************************************************************************************************************************************************************************

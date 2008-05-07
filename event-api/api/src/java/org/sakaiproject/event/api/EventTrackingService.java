@@ -23,6 +23,8 @@ package org.sakaiproject.event.api;
 
 import java.util.Observer;
 
+import org.sakaiproject.user.api.User;
+
 /**
  * <p>
  * The event tracking service provides activity event tracking and monitoring.<br />
@@ -83,6 +85,16 @@ public interface EventTrackingService
 	void post(Event event, UsageSession session);
 
 	/**
+	 * Post an event on behalf of a user.
+	 * 
+	 * @param event
+	 *        The event object (created with newEvent()).
+	 * @param user
+	 *        The User object of the user responsible for the event.
+	 */
+	void post(Event event, User user);
+
+	/**
 	 * Add an observer of events. The observer will be notified whenever there are new events.
 	 * 
 	 * @param observer
@@ -113,4 +125,18 @@ public interface EventTrackingService
 	 *        The class observing to delete.
 	 */
 	void deleteObserver(Observer observer);
+
+	/**
+	 * Add an event voter.
+	 * 
+	 * @param voter
+	 */
+	void addVoter(EventVoter voter);
+
+	/**
+	 * Delete an event voter.
+	 * 
+	 * @param voter
+	 */
+	void deleteVoter(EventVoter voter);
 }

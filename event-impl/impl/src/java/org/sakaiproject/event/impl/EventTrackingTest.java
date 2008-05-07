@@ -21,6 +21,7 @@
 
 package org.sakaiproject.event.impl;
 
+import org.sakaiproject.authz.api.SecurityService;
 import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.db.api.SqlService;
 import org.sakaiproject.event.api.UsageSessionService;
@@ -70,6 +71,14 @@ public class EventTrackingTest extends ClusterEventTracking
 	 * @return the TimeService collaborator.
 	 */
 	protected TimeService timeService()
+	{
+		return null;
+	}
+
+	/**
+	 * @return the SecurityService collaborator.
+	 */
+	protected SecurityService securityService()
 	{
 		return null;
 	}
