@@ -324,13 +324,17 @@ public class NotificationCache implements Cacher, Observer {
 	{
 		m_holdEventProcessing = false;
 
-		for (int i = 0; i < m_heldEvents.size(); i++)
+		synchronized (m_heldEvents) 
 		{
-			Event event = (Event) m_heldEvents.get(i);
-			continueUpdate(event);
-		}
+			for (int i = 0; i < m_heldEvents.size(); i++)
+			{
+				Event event = (Event) m_heldEvents.get(i);
+				continueUpdate(event);
+			}
 
-		m_heldEvents.clear();
+			m_heldEvents.clear();
+		
+		}
 
 	} // holdEvents
 
@@ -452,7 +456,10 @@ public class NotificationCache implements Cacher, Observer {
 		{
 			if (m_holdEventProcessing)
 			{
-				m_heldEvents.add(event);
+				synchronized (m_heldEvents)
+				{
+					m_heldEvents.add(event);
+				}
 				return;
 			}			
 		}
