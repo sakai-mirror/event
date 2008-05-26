@@ -56,9 +56,9 @@ import org.w3c.dom.Element;
  * <ul>
  * <li>getRecipients() - get a collection of Users to send the notification to</li>
  * <li>getHeaders() - form the complete message headers (like from: to: reply-to: date: subject: etc). from: and to: are for display only</li>
- * <li>getMessage() - form the complete message body (minus headers)</li>
+ * <li>htmlContent() - form the complete html message body (minus headers)</li>
+ * <li>plainTextContent() - form the complete plain text message body (minus headers)</li>
  * <li>getTag() - the part of the body at the end that identifies the list</li>
- * <li>isBodyHTML() - say if your body is html or not (not would be plain text)</li>
  * </ul>
  * </p>
  * <p>
@@ -174,7 +174,6 @@ public class EmailNotification implements NotificationAction
 
 		// get the email elements - headers (including to: from: subject: date: and anything else we want in the message) and body
 		List headers = getHeaders(event);
-		String message = getMessage(event);
 
 		if ( "true".equals(ServerConfigurationService.getString("email.precedence.bulk", "false")) )  
 		{
@@ -185,49 +184,31 @@ public class EmailNotification implements NotificationAction
 			headers.add(bulkFlag);
 		}
 
-		// from = "\"" + ServerConfigurationService.getString("ui.service", "Sakai") + "\"<no-reply@" + ServerConfigurationService.getServerName() + ">";
-
-		// some info we will need to add the tag for immediate recipients
-		boolean isBodyHTML = isBodyHTML(event);
-		String newline = (isBodyHTML) ? "<br />\n" : "\n";
-
 		// for the immediates
 		if (immediate.size() > 0)
 		{
-			// get a site title: use either the configured site, or if not configured, the site (context) of the resource
-			Reference ref = EntityManager.newReference(event.getResource());
-			String title = (getSite() != null) ? getSite() : ref.getContext();
-			try
-			{
-				Site site = SiteService.getSite(title);
-				title = site.getTitle();
-			}
-			catch (Exception ignore)
-			{
-			}
-
-			// add the tag to the end message
-			String messageForImmediates = message + getTag(newline, title);
-
-			// send it: from: from, to: immediates, body: messageForImmediates, headers: headers
-			EmailService.sendToUsers(immediate, headers, messageForImmediates);
+			// get formatted message (including tag)
+			String message = getMessage(event);
+			
+			// send message to immediates, with headers
+			EmailService.sendToUsers(immediate, headers, message);
 		}
 
 		// for the digesters
 		if (digest.size() > 0)
 		{
-			// TODO: \n or newLine? text or htlm? -ggolden
+			String message = plainTextContent();
 
 			// modify the message to add header lines (we don't add a tag for each message, the digest adds a single one when sent)
 			StringBuilder messageForDigest = new StringBuilder();
 
 			String item = findHeader("From", headers);
-			if (item != null) messageForDigest.append(item);
+			if (item != null) messageForDigest.append(item+"\n");
 
 			item = findHeader("Date", headers);
 			if (item != null)
 			{
-				messageForDigest.append(item);
+				messageForDigest.append(item+"\n");
 			}
 			else
 			{
@@ -235,13 +216,13 @@ public class EmailNotification implements NotificationAction
 			}
 
 			item = findHeader("To", headers);
-			if (item != null) messageForDigest.append(item);
+			if (item != null) messageForDigest.append(item+"\n");
 
 			item = findHeader("Cc", headers);
-			if (item != null) messageForDigest.append(item);
+			if (item != null) messageForDigest.append(item+"\n");
 
 			item = findHeader("Subject", headers);
-			if (item != null) messageForDigest.append(item);
+			if (item != null) messageForDigest.append(item+"\n");
 
 			// and the body
 			messageForDigest.append("\n");
@@ -265,16 +246,31 @@ public class EmailNotification implements NotificationAction
 	 */
 	protected String getMessage(Event event)
 	{	
+		// get a site title: use either the configured site, or if not configured, the site (context) of the resource
+		Reference ref = EntityManager.newReference(event.getResource());
+		String title = (getSite() != null) ? getSite() : ref.getContext();
+		try
+		{
+			Site site = SiteService.getSite(title);
+			title = site.getTitle();
+		}
+		catch (Exception ignore) {}
+
 		StringBuilder message = new StringBuilder();
 		message.append(MIME_ADVISORY);
+		
 		message.append(BOUNDARY_LINE);
 		message.append(plainTextHeaders());
 		message.append(plainTextContent());
+		message.append( getTag(title, false) );
+		
 		message.append(BOUNDARY_LINE);
 		message.append(htmlHeaders());
 		message.append(htmlPreamble());
 		message.append(htmlContent());
+		message.append( getTag(title, true) );
 		message.append(htmlEnd());
+		
 		message.append(TERMINATION_LINE);
 		return message.toString();
 	}
@@ -295,11 +291,11 @@ public class EmailNotification implements NotificationAction
 		StringBuilder buf = new StringBuilder();
 		buf.append("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n");
 		buf.append("    \"http://www.w3.org/TR/html4/loose.dtd\">\n");
-		buf.append("<html>\n");
+		buf.append("<html>");
 		buf.append("  <head><title>");
 		buf.append(getSubject());
-		buf.append("</title></head>\n");
-		buf.append("  <body>\n");
+		buf.append("</title></head>");
+		buf.append("  <body>");
 		return buf.toString();
 	}
 	
@@ -308,19 +304,17 @@ public class EmailNotification implements NotificationAction
 	}
 	
 	protected String htmlEnd() {
-		return "\n  </body>\n</html>\n";
+		return "  </body></html>";
 	}
 
 	/**
 	 * Get the message tag, the text to display at the bottom of the message.
 	 * 
-	 * @param newline
-	 *        The newline character(s).
-	 * @param title
-	 *        The title string.
+	 * @param title The title string
+	 * @param shouldUseHtml if true, use html not plain text encoding in message
 	 * @return The message tag.
 	 */
-	protected String getTag(String newline, String title)
+	protected String getTag(String title, boolean shouldUseHtml)
 	{
 		return "";
 	}
@@ -340,18 +334,6 @@ public class EmailNotification implements NotificationAction
 		rv.add("Content-Type: multipart/alternative; boundary=\""+MULTIPART_BOUNDARY+"\"");
 		
 		return rv;
-	}
-
-	/**
-	 * Return true if the body of the email message should be sent as HTML. If this returns true, getHeaders() should also return a "Content-Type: text/html" header of some kind.
-	 * 
-	 * @param event
-	 *        The event that matched criteria to cause the notification.
-	 * @return whether the body of the email message should be sent as HTML.
-	 */
-	protected boolean isBodyHTML(Event event)
-	{
-		return false;
 	}
 
 	/**
