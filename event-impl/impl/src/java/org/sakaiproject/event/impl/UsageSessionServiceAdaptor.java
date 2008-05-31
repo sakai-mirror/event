@@ -466,8 +466,24 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 	 */
 	public boolean login(Authentication authn, HttpServletRequest req)
 	{
+		return login(authn.getUid(), authn.getEid(), req.getRemoteAddr(), req.getHeader("user-agent"), null);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public boolean login(Authentication authn, HttpServletRequest req, String event)
+	{
+		return login(authn.getUid(), authn.getEid(), req.getRemoteAddr(), req.getHeader("user-agent"), event);
+	}
+	
+	/**
+	 * @inheritDoc
+	 */
+	public boolean login(String uid, String eid, String remoteaddr, String ua, String event)
+	{
 		// establish the user's session - this has been known to fail
-		UsageSession session = startSession(authn.getUid(), req.getRemoteAddr(), req.getHeader("user-agent"));
+		UsageSession session = startSession(uid, remoteaddr, ua);
 		if (session == null)
 		{
 			return false;
@@ -475,18 +491,19 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 
 		// set the user information into the current session
 		Session sakaiSession = sessionManager().getCurrentSession();
-		sakaiSession.setUserId(authn.getUid());
-		sakaiSession.setUserEid(authn.getEid());
+		sakaiSession.setUserId(uid);
+		sakaiSession.setUserEid(eid);
 
 		// update the user's externally provided realm definitions
-		authzGroupService().refreshUser(authn.getUid());
+		authzGroupService().refreshUser(eid);
 
 		// post the login event
-		eventTrackingService().post(eventTrackingService().newEvent(EVENT_LOGIN, null, true));
+		eventTrackingService().post(eventTrackingService().newEvent(event != null ? event : EVENT_LOGIN, null, true));
 
 		return true;
 	}
 
+	
 	/**
 	 * @inheritDoc
 	 */
