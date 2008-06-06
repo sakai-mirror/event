@@ -289,7 +289,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 		String statement = insertStatement();
 
 		// collect the fields
-		Object fields[] = new Object[5];
+		Object fields[] = new Object[6];
 		bindValues(event, fields);
 
 		// process the insert
@@ -325,7 +325,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 
 			// common preparation for each insert
 			String statement = insertStatement();
-			Object fields[] = new Object[5];
+			Object fields[] = new Object[6];
 
 			// write all events
 			for (Iterator i = events.iterator(); i.hasNext();)
@@ -417,6 +417,8 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 				event.getResource().substring(0, 255) : event.getResource();
 		fields[3] = reportId;
 		fields[4] = (event.getModify() ? "m" : "a");
+		fields[5] = event.getContext() != null && event.getContext().length() > 255 ? 
+				event.getContext().substring(0, 255) : event.getContext();
 	}
 
 	/*************************************************************************************************************************************************
