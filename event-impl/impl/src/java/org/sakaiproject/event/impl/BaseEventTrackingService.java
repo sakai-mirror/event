@@ -192,6 +192,24 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 	 *        The Event id.
 	 * @param resource
 	 *        The resource reference.
+	 * @param context
+	 *        The Event's context.
+	 * @param modify
+	 *        Set to true if this event caused a resource modification, false if it was just an access.
+	 * @return A new Event object that can be used with this service.
+	 */
+	public Event newEvent(String event, String resource, String context, boolean modify)
+	{
+		return new BaseEvent(event, resource, context, modify, NotificationService.NOTI_OPTIONAL);
+	}
+	
+	/**
+	 * Construct a Event object.
+	 * 
+	 * @param event
+	 *        The Event id.
+	 * @param resource
+	 *        The resource reference.
 	 * @param modify
 	 *        Set to true if this event caused a resource modification, false if it was just an access.
 	 * @param priority
@@ -203,6 +221,26 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 		return new BaseEvent(event, resource, modify, priority);
 	}
 
+	/**
+	 * Construct a Event object.
+	 * 
+	 * @param event
+	 *        The Event id.
+	 * @param resource
+	 *        The resource reference.
+	 * @param context
+	 *        The Event's context.
+	 * @param modify
+	 *        Set to true if this event caused a resource modification, false if it was just an access.
+	 * @param priority
+	 *        The Event's notification priority.
+	 * @return A new Event object that can be used with this service.
+	 */
+	public Event newEvent(String event, String resource, String context, boolean modify, int priority)
+	{
+		return new BaseEvent(event, resource, context, modify, priority);
+	}
+	
 	/**
 	 * Post an event
 	 * 
@@ -592,6 +630,31 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 		/**
 		 * Construct
 		 * 
+		 * @param event
+		 *        The Event id.
+		 * @param resource
+		 *        The resource id.
+		 * @param modify
+		 *        If the event caused a modify, true, if it was just an access, false.
+		 * @param context
+		 *        The Event's context (may be null)
+		 * @param priority
+		 *        The Event's notification priority.
+		 */
+		public BaseEvent(String event, String resource, String context, boolean modify, int priority)
+		{
+			setEvent(event);
+			setResource(resource);
+			m_modify = modify;
+			m_priority = priority;
+			m_context = context;
+		}
+
+
+		
+		/**
+		 * Construct
+		 * 
 		 * @param seq
 		 *        The event sequence number.
 		 * @param event
@@ -603,9 +666,9 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 		 * @param priority
 		 *        The Event's notification priority.
 		 */
-		public BaseEvent(long seq, String event, String resource, boolean modify, int priority)
+		public BaseEvent(long seq, String event, String resource, String context, boolean modify, int priority)
 		{
-			this(event, resource, modify, priority);
+			this(event, resource, context, modify, priority);
 			m_seq = seq;
 		}
 

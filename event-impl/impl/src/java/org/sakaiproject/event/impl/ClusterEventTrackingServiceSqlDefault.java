@@ -48,7 +48,7 @@ public class ClusterEventTrackingServiceSqlDefault implements ClusterEventTracki
 	 */
 	public String getEventSql()
 	{
-		return "select EVENT_ID,EVENT_DATE,EVENT,REF,SAKAI_EVENT.SESSION_ID,EVENT_CODE,SESSION_SERVER " + "from   SAKAI_EVENT,SAKAI_SESSION "
+		return "select EVENT_ID,EVENT_DATE,EVENT,REF,SAKAI_EVENT.SESSION_ID,EVENT_CODE,CONTEXT,SESSION_SERVER " + "from   SAKAI_EVENT,SAKAI_SESSION "
 				+ "where (SAKAI_EVENT.SESSION_ID = SAKAI_SESSION.SESSION_ID) and (EVENT_ID > ?)";
 	}
 
