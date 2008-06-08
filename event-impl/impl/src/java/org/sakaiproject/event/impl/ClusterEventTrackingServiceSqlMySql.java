@@ -37,7 +37,7 @@ public class ClusterEventTrackingServiceSqlMySql extends ClusterEventTrackingSer
                           "?, " + // event
                           "?, " + // reference
                           "?, " + // session id
-                          "?, " + // context
-                          "?)";   // code
+                          "?, " + // code
+                          "?)";   // context
    }
 }

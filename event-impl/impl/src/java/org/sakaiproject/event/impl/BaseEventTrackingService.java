@@ -610,11 +610,13 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 			setResource(resource);
 			m_modify = modify;
 			m_priority = priority;
-			
-			// Find the context using the reference (let the service parse it) 
-			Reference ref = EntityManager.newReference(resource);
-			if (ref != null) {
-				m_context = ref.getContext();
+
+			// Find the context using the reference (let the service that it belongs to parse it) 
+			if (resource != null && !"".equals(resource)) {
+				Reference ref = EntityManager.newReference(resource);
+				if (ref != null) {
+					m_context = ref.getContext();
+				}
 			}
 			
 			// If we still need to find the context, try the tool placement 
@@ -624,7 +626,7 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 					m_context = placement.getContext();
 				}
 			}
-
+			
 		}
 
 		/**
