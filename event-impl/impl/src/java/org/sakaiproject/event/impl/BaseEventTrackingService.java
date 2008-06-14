@@ -35,14 +35,14 @@ import org.sakaiproject.event.api.EventTrackingService;
 import org.sakaiproject.event.api.EventVoter;
 import org.sakaiproject.event.api.NotificationService;
 import org.sakaiproject.entity.api.Reference;
-import org.sakaiproject.entity.cover.EntityManager;
+import org.sakaiproject.entity.api.EntityManager;
 import org.sakaiproject.event.api.UsageSession;
 import org.sakaiproject.event.api.UsageSessionService;
 import org.sakaiproject.time.api.Time;
 import org.sakaiproject.user.api.User;
 import org.sakaiproject.tool.api.Placement;
 import org.sakaiproject.tool.api.SessionManager;
-import org.sakaiproject.tool.cover.ToolManager;
+import org.sakaiproject.tool.api.ToolManager;
 
 /**
  * <p>
@@ -145,6 +145,17 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 	 */
 	protected abstract SecurityService securityService();
 
+	/**
+	 * @return the ToolManager collaborator.
+	 */
+	protected abstract ToolManager toolManager();
+
+	/**
+	 * @return the EntityManager collaborator.
+	 */
+	protected abstract EntityManager entityManager();
+
+
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
 	 *********************************************************************************************************************************************************************************************************************************************************/
@@ -185,24 +196,6 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 		return new BaseEvent(event, resource, modify, NotificationService.NOTI_OPTIONAL);
 	}
 
-	/**
-	 * Construct a Event object.
-	 * 
-	 * @param event
-	 *        The Event id.
-	 * @param resource
-	 *        The resource reference.
-	 * @param context
-	 *        The Event's context.
-	 * @param modify
-	 *        Set to true if this event caused a resource modification, false if it was just an access.
-	 * @return A new Event object that can be used with this service.
-	 */
-	public Event newEvent(String event, String resource, String context, boolean modify)
-	{
-		return new BaseEvent(event, resource, context, modify, NotificationService.NOTI_OPTIONAL);
-	}
-	
 	/**
 	 * Construct a Event object.
 	 * 
@@ -613,7 +606,7 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 
 			// Find the context using the reference (let the service that it belongs to parse it) 
 			if (resource != null && !"".equals(resource)) {
-				Reference ref = EntityManager.newReference(resource);
+				Reference ref = entityManager().newReference(resource);
 				if (ref != null) {
 					m_context = ref.getContext();
 				}
@@ -621,7 +614,7 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 			
 			// If we still need to find the context, try the tool placement 
 			if (m_context == null) {
-				Placement placement = ToolManager.getCurrentPlacement();
+				Placement placement = toolManager().getCurrentPlacement();
 				if (placement != null) {
 					m_context = placement.getContext();
 				}
