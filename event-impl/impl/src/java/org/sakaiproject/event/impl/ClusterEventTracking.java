@@ -289,7 +289,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 		String statement = insertStatement();
 
 		// collect the fields
-		Object fields[] = new Object[5];
+		Object fields[] = new Object[6];
 		bindValues(event, fields);
 
 		// process the insert
@@ -325,7 +325,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 
 			// common preparation for each insert
 			String statement = insertStatement();
-			Object fields[] = new Object[5];
+			Object fields[] = new Object[6];
 
 			// write all events
 			for (Iterator i = events.iterator(); i.hasNext();)
@@ -417,6 +417,8 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 				event.getResource().substring(0, 255) : event.getResource();
 		fields[3] = reportId;
 		fields[4] = (event.getModify() ? "m" : "a");
+		fields[5] = event.getContext() != null && event.getContext().length() > 255 ? 
+				event.getContext().substring(0, 255) : event.getContext();
 	}
 
 	/*************************************************************************************************************************************************
@@ -520,7 +522,8 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 							String ref = result.getString(4);
 							String session = result.getString(5);
 							String code = result.getString(6);
-							String eventSessionServerId = result.getString(7);
+							String context = result.getString(7);
+							String eventSessionServerId = result.getString(8);
 
 							// for each one (really, for the last one), update the last event seen seq number
 							if (id > m_lastEventSeq)
@@ -555,7 +558,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 
 							// Note: events from outside the server don't need notification info, since notification is processed only on internal
 							// events -ggolden
-							BaseEvent event = new BaseEvent(id, function, ref, code.equals("m"), NotificationService.NOTI_NONE);
+							BaseEvent event = new BaseEvent(id, function, ref, context, code.equals("m"), NotificationService.NOTI_NONE);
 							if (nonSessionEvent)
 							{
 								event.setUserId(userId);

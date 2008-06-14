@@ -34,11 +34,15 @@ import org.sakaiproject.event.api.Event;
 import org.sakaiproject.event.api.EventTrackingService;
 import org.sakaiproject.event.api.EventVoter;
 import org.sakaiproject.event.api.NotificationService;
+import org.sakaiproject.entity.api.Reference;
+import org.sakaiproject.entity.api.EntityManager;
 import org.sakaiproject.event.api.UsageSession;
 import org.sakaiproject.event.api.UsageSessionService;
 import org.sakaiproject.time.api.Time;
 import org.sakaiproject.user.api.User;
+import org.sakaiproject.tool.api.Placement;
 import org.sakaiproject.tool.api.SessionManager;
+import org.sakaiproject.tool.api.ToolManager;
 
 /**
  * <p>
@@ -141,6 +145,17 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 	 */
 	protected abstract SecurityService securityService();
 
+	/**
+	 * @return the ToolManager collaborator.
+	 */
+	protected abstract ToolManager toolManager();
+
+	/**
+	 * @return the EntityManager collaborator.
+	 */
+	protected abstract EntityManager entityManager();
+
+
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Init and Destroy
 	 *********************************************************************************************************************************************************************************************************************************************************/
@@ -199,6 +214,26 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 		return new BaseEvent(event, resource, modify, priority);
 	}
 
+	/**
+	 * Construct a Event object.
+	 * 
+	 * @param event
+	 *        The Event id.
+	 * @param resource
+	 *        The resource reference.
+	 * @param context
+	 *        The Event's context.
+	 * @param modify
+	 *        Set to true if this event caused a resource modification, false if it was just an access.
+	 * @param priority
+	 *        The Event's notification priority.
+	 * @return A new Event object that can be used with this service.
+	 */
+	public Event newEvent(String event, String resource, String context, boolean modify, int priority)
+	{
+		return new BaseEvent(event, resource, context, modify, priority);
+	}
+	
 	/**
 	 * Post an event
 	 * 
@@ -461,6 +496,9 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 		/** The Event's resource reference string. */
 		protected String m_resource = "";
 
+		/** The Event's context. May be null. */
+		protected String m_context = null;
+		
 		/** The Event's session id string. May be null. */
 		protected String m_session = null;
 
@@ -496,6 +534,17 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 			return m_resource;
 		}
 
+		/**
+		 * Access the resource reference.
+		 * 
+		 * @return The resource reference string.
+		 */
+		public String getContext()
+		{
+			return m_context;
+		}
+
+		
 		/**
 		 * Access the UsageSession id. If null, check for a User id.
 		 * 
@@ -554,8 +603,50 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 			setResource(resource);
 			m_modify = modify;
 			m_priority = priority;
+
+			// Find the context using the reference (let the service that it belongs to parse it) 
+			if (resource != null && !"".equals(resource)) {
+				Reference ref = entityManager().newReference(resource);
+				if (ref != null) {
+					m_context = ref.getContext();
+				}
+			}
+			
+			// If we still need to find the context, try the tool placement 
+			if (m_context == null) {
+				Placement placement = toolManager().getCurrentPlacement();
+				if (placement != null) {
+					m_context = placement.getContext();
+				}
+			}
+			
 		}
 
+		/**
+		 * Construct
+		 * 
+		 * @param event
+		 *        The Event id.
+		 * @param resource
+		 *        The resource id.
+		 * @param modify
+		 *        If the event caused a modify, true, if it was just an access, false.
+		 * @param context
+		 *        The Event's context (may be null)
+		 * @param priority
+		 *        The Event's notification priority.
+		 */
+		public BaseEvent(String event, String resource, String context, boolean modify, int priority)
+		{
+			setEvent(event);
+			setResource(resource);
+			m_modify = modify;
+			m_priority = priority;
+			m_context = context;
+		}
+
+
+		
 		/**
 		 * Construct
 		 * 
@@ -570,9 +661,9 @@ public abstract class BaseEventTrackingService implements EventTrackingService
 		 * @param priority
 		 *        The Event's notification priority.
 		 */
-		public BaseEvent(long seq, String event, String resource, boolean modify, int priority)
+		public BaseEvent(long seq, String event, String resource, String context, boolean modify, int priority)
 		{
-			this(event, resource, modify, priority);
+			this(event, resource, context, modify, priority);
 			m_seq = seq;
 		}
 

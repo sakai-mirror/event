@@ -67,6 +67,23 @@ public interface EventTrackingService
 	Event newEvent(String event, String resource, boolean modify, int priority);
 
 	/**
+	 * Construct a Event object.
+	 * 
+	 * @param event
+	 *        The Event id.
+	 * @param resource
+	 *        The resource reference.
+	 * @param context
+	 *        The Event's context (may be null).
+	 * @param modify
+	 *        Set to true if this event caused a resource modification, false if it was just an access.
+	 * @param priority
+	 *        The Event's notification priority. Use NotificationService.NOTI_OPTIONAL as default.
+	 * @return A new Event object that can be used with this service.
+	 */
+	Event newEvent(String event, String resource, String context, boolean modify, int priority);
+
+	/**
 	 * Post an event
 	 * 
 	 * @param event
