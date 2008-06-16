@@ -152,7 +152,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 	 */
 	public void setAutoDdl(String value)
 	{
-		m_autoDdl = new Boolean(value).booleanValue();
+		m_autoDdl = Boolean.valueOf(value).booleanValue();
 	}
 
 	/** contains a map of the database dependent handlers. */
@@ -1147,7 +1147,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 				userAgent,
 				session.getStart(),
 				session.getEnd(),
-				session.isClosed() ? null : new Boolean(true)
+				session.isClosed() ? null : Boolean.valueOf(true)
 			});
 			if (!ok)
 			{
@@ -1272,7 +1272,7 @@ public abstract class UsageSessionServiceAdaptor implements UsageSessionService
 			// process the statement
 			boolean ok = sqlService().dbWrite(statement, new Object[]{
 				session.getEnd(),
-				session.isClosed() ? null : new Boolean(true),
+				session.isClosed() ? null : Boolean.valueOf(true),
 				session.getId()
 			});
 			if (!ok)

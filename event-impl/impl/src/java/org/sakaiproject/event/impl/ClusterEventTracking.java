@@ -104,7 +104,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	{
 		try
 		{
-			m_checkDb = new Boolean(value).booleanValue();
+			m_checkDb = Boolean.valueOf(value).booleanValue();
 		}
 		catch (Exception any)
 		{
@@ -124,7 +124,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	{
 		try
 		{
-			m_batchWrite = new Boolean(value).booleanValue();
+			m_batchWrite = Boolean.valueOf(value).booleanValue();
 		}
 		catch (Exception any)
 		{
@@ -142,7 +142,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 	 */
 	public void setAutoDdl(String value)
 	{
-		m_autoDdl = new Boolean(value).booleanValue();
+		m_autoDdl = Boolean.valueOf(value).booleanValue();
 	}
 
 	/** How long to wait between checks for new events from the db. */
@@ -507,7 +507,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 
 				// send in the last seq number parameter
 				Object[] fields = new Object[1];
-				fields[0] = new Long(m_lastEventSeq);
+				fields[0] = Long.valueOf(m_lastEventSeq);
 
 				List events = sqlService().dbRead(statement, fields, new SqlReader()
 				{
@@ -558,7 +558,7 @@ public abstract class ClusterEventTracking extends BaseEventTrackingService impl
 
 							// Note: events from outside the server don't need notification info, since notification is processed only on internal
 							// events -ggolden
-							BaseEvent event = new BaseEvent(id, function, ref, context, code.equals("m"), NotificationService.NOTI_NONE);
+							BaseEvent event = new BaseEvent(id, function, ref, context, "m".equals(code), NotificationService.NOTI_NONE);
 							if (nonSessionEvent)
 							{
 								event.setUserId(userId);

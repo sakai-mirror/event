@@ -476,7 +476,7 @@ public class EmailNotification implements NotificationAction
 				String type = EntityManager.newReference(resourceFilter).getType();
 				if (type != null)
 				{
-					if (type.equals("org.sakaiproject.mailarchive.api.MailArchiveService"))
+					if ("org.sakaiproject.mailarchive.api.MailArchiveService".equals(type))
 					{
 						return true;
 					}
