@@ -75,7 +75,6 @@ public class EmailNotification implements NotificationAction
 	
 	/** The related site id. */
 	protected String m_siteId = null;
-	protected Event event = null;
 
 	/**
 	 * Construct.
@@ -156,8 +155,7 @@ public class EmailNotification implements NotificationAction
 	 */
 	public void notify(Notification notification, Event event)
 	{
-		this.event = event;
-		reNotify(notification.getId(), notification.getResourceFilter(), event.getPriority());
+		reNotify(notification.getId(), notification.getResourceFilter(), event.getPriority(), event);
 	}
 
 	/**
@@ -173,7 +171,7 @@ public class EmailNotification implements NotificationAction
 	 * @param eventPriority
 	 *            The priority level of the event.
 	 */
-	public void reNotify(String notificationId, String resourceFilter, int eventPriority)
+	public void reNotify(String notificationId, String resourceFilter, int eventPriority, Event event)
 	{
 		// ignore events marked for no notification
 		if (eventPriority == NotificationService.NOTI_NONE) return;
@@ -182,10 +180,10 @@ public class EmailNotification implements NotificationAction
 		List recipients = getRecipients(event);
 
 		// filter to actual immediate recipients
-		List immediate = immediateRecipients(recipients, notificationId, resourceFilter, eventPriority);
+		List immediate = immediateRecipients(recipients, notificationId, resourceFilter, eventPriority, event);
 
 		// and the list of digest recipients
-		List digest = digestRecipients(recipients, notificationId, resourceFilter, eventPriority);
+		List digest = digestRecipients(recipients, notificationId, resourceFilter, eventPriority, event);
 
 		// we may be done
 		if ((immediate.size() == 0) && (digest.size() == 0)) return;
@@ -215,7 +213,7 @@ public class EmailNotification implements NotificationAction
 		// for the digesters
 		if (digest.size() > 0)
 		{
-			String message = plainTextContent();
+			String message = plainTextContent(event);
 
 			// modify the message to add header lines (we don't add a tag for each message, the digest adds a single one when sent)
 			StringBuilder messageForDigest = new StringBuilder();
@@ -279,13 +277,13 @@ public class EmailNotification implements NotificationAction
 		
 		message.append(BOUNDARY_LINE);
 		message.append(plainTextHeaders());
-		message.append(plainTextContent());
+		message.append(plainTextContent(event));
 		message.append( getTag(title, false) );
 		
 		message.append(BOUNDARY_LINE);
 		message.append(htmlHeaders());
-		message.append(htmlPreamble());
-		message.append(htmlContent());
+		message.append(htmlPreamble(event));
+		message.append(htmlContent(event));
 		message.append( getTag(title, true) );
 		message.append(htmlEnd());
 		
@@ -297,7 +295,7 @@ public class EmailNotification implements NotificationAction
 		return "Content-Type: text/plain\n\n";
 	}
 	
-	protected String plainTextContent() {
+	protected String plainTextContent(Event event) {
 		return null;
 	}
 	
@@ -305,20 +303,20 @@ public class EmailNotification implements NotificationAction
 		return "Content-Type: text/html\n\n";
 	}
 	
-	protected String htmlPreamble() {
+	protected String htmlPreamble(Event event) {
 		StringBuilder buf = new StringBuilder();
 		buf.append("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n");
 		buf.append("    \"http://www.w3.org/TR/html4/loose.dtd\">\n");
 		buf.append("<html>");
 		buf.append("  <head><title>");
-		buf.append(getSubject());
+		buf.append(getSubject(event));
 		buf.append("</title></head>");
 		buf.append("  <body>");
 		return buf.toString();
 	}
 	
-	protected String htmlContent() {
-		return Web.encodeUrlsAsHtml(FormattedText.escapeHtml(plainTextContent(),true));
+	protected String htmlContent(Event event) {
+		return Web.encodeUrlsAsHtml(FormattedText.escapeHtml(plainTextContent(event),true));
 	}
 	
 	protected String htmlEnd() {
@@ -391,7 +389,7 @@ public class EmailNotification implements NotificationAction
 	 */
 	protected List immediateRecipients(List recipients, Notification notification, Event event)
 	{
-		return immediateRecipients(recipients, notification.getId(), notification.getResourceFilter(), event.getPriority());
+		return immediateRecipients(recipients, notification.getId(), notification.getResourceFilter(), event.getPriority(), event);
 	}
 
 	/**
@@ -410,7 +408,7 @@ public class EmailNotification implements NotificationAction
 	 * @return The List of immediate recipients.
 	 */
 	protected List immediateRecipients(List<String> recipients, String notificationId,
-			String resourceFilter, int eventPriority)
+			String resourceFilter, int eventPriority, Event event)
 	{
 		int priority = event.getPriority();
 
@@ -426,7 +424,7 @@ public class EmailNotification implements NotificationAction
 			User user = (User) iUsers.next();
 
 			// get the user's priority preference for this event
-			int option = getOption(user, notificationId, resourceFilter, eventPriority);
+			int option = getOption(user, notificationId, resourceFilter, eventPriority, event);
 
 			// if immediate is the option, or there is no option, select this user
 			// Note: required and none priority are already handled, so we know it's optional here.
@@ -501,7 +499,7 @@ public class EmailNotification implements NotificationAction
 	 */
 	protected List digestRecipients(List recipients, Notification notification, Event event)
 	{
-		return digestRecipients(recipients, notification.getId(), notification.getResourceFilter(), event.getPriority());
+		return digestRecipients(recipients, notification.getId(), notification.getResourceFilter(), event.getPriority(), event);
 	}
 
 	/**
@@ -519,7 +517,7 @@ public class EmailNotification implements NotificationAction
 	 * @return The List (User) of digest recipients.
 	 */
 	protected List digestRecipients(List recipients, String notificationId, String resourceFilter,
-			int eventPriority)
+			int eventPriority, Event event)
 	{
 		List rv = new Vector();
 
@@ -536,7 +534,7 @@ public class EmailNotification implements NotificationAction
 			User user = (User) iUsers.next();
 
 			// get the user's priority preference for this event
-			int option = getOption(user, notificationId, resourceFilter, eventPriority);
+			int option = getOption(user, notificationId, resourceFilter, eventPriority, event);
 
 			// if digest is the option, select this user
 			if (option == NotificationService.PREF_DIGEST)
@@ -554,7 +552,7 @@ public class EmailNotification implements NotificationAction
 	protected int getOption(User user, Notification notification, Event event)
 	{
 		return getOption(user, notification.getId(), notification.getResourceFilter(), event
-				.getPriority());
+				.getPriority(), event);
 	}
 
 	/**
@@ -567,7 +565,7 @@ public class EmailNotification implements NotificationAction
 	 * @param eventPriority
 	 * @return
 	 */
-	protected int getOption(User user, String notificationId, String resourceFilter, int eventPriority)
+	protected int getOption(User user, String notificationId, String resourceFilter, int eventPriority, Event event)
 	{
 		String priStr = Integer.toString(event.getPriority());
 
@@ -744,9 +742,9 @@ public class EmailNotification implements NotificationAction
 	 *        The event that matched criteria to cause the notification.
 	 * @return the subject for the email.
 	 */
-	protected String getSubject()
+	protected String getSubject(Event event)
 	{
-		return findHeaderValue("Subject", getHeaders(this.event));
+		return findHeaderValue("Subject", getHeaders(event));
 	}
 	
 }
